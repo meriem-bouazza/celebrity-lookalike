@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whoisit"
+version = "0.1.0"
+description = "Celebrity look-alike finder: cross-entropy vs. ArcFace face embeddings with few images per identity"
+requires-python = ">=3.11,<3.13"
+authors = [{ name = "Meriem Bouazza" }, { name = "Melina Tsigka" }]
+license = { text = "MIT" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
