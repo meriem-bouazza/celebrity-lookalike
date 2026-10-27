@@ -10,6 +10,7 @@ from whoisit.data.align import (
     detect_largest_face,
     load_image,
     similarity_transform,
+    visible_box_areas,
 )
 
 
@@ -36,6 +37,15 @@ def test_align_face_output_shape_and_type():
     aligned = align_face(image, TEMPLATE_112 * 2.0)
     assert aligned.shape == (112, 112, 3)
     assert aligned.dtype == np.uint8
+
+
+def test_visible_box_area_ignores_parts_outside_the_image():
+    # Real case from LFW (Norah_Jones_0013, 250 x 250 px): a cut-off background face whose box
+    # reaches x = 323 must not beat the fully visible main face.
+    boxes = np.array([[201, 60, 323, 204], [75, 56, 170, 190]], dtype=np.float32)
+    areas = visible_box_areas(boxes, width=250, height=250)
+    np.testing.assert_allclose(areas, [49 * 144, 95 * 134])
+    assert np.argmax(areas) == 1
 
 
 def test_no_face_returns_none():

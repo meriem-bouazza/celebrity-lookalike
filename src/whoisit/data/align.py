@@ -84,15 +84,35 @@ def detect_largest_face(
     if boxes is None:
         return None
 
+    # facenet-pytorch can return object arrays; convert to plain floats.
+    boxes, probs, points = (np.asarray(x, dtype=np.float32) for x in (boxes, probs, points))
     keep = probs >= min_confidence
     if not keep.any():
         return None
     boxes, probs, points = boxes[keep], probs[keep], points[keep]
 
-    # "Largest" = largest box area; in group photos this is usually the main person.
-    areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-    i = int(np.argmax(areas))
-    return points[i].astype(np.float32), float(probs[i])
+    # "Largest" = largest visible box area; in group photos this is usually the main person.
+    height, width = rgb.shape[:2]
+    i = int(np.argmax(visible_box_areas(boxes, width, height)))
+    return points[i], float(probs[i])
+
+
+def visible_box_areas(boxes: np.ndarray, width: int, height: int) -> np.ndarray:
+    """Area of each box (x1, y1, x2, y2) after clipping it to the image.
+
+    MTCNN boxes can extend beyond the image border. Without clipping, a half-visible face
+    at the edge can look "larger" than the fully visible main face.
+
+    Args:
+        boxes: Array (N, 4) with x1, y1, x2, y2 in pixels.
+        width, height: Image size in pixels.
+
+    Returns:
+        Array (N,) with the visible areas in square pixels.
+    """
+    x1, x2 = np.clip(boxes[:, 0], 0, width), np.clip(boxes[:, 2], 0, width)
+    y1, y2 = np.clip(boxes[:, 1], 0, height), np.clip(boxes[:, 3], 0, height)
+    return (x2 - x1) * (y2 - y1)
 
 
 def similarity_transform(landmarks: np.ndarray) -> np.ndarray:
