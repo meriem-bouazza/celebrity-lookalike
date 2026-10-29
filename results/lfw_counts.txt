@@ -1,0 +1,8 @@
+people: 5749
+images: 13233
+max images per person: 530
+>= 1 images: 5749 people
+>= 2 images: 1680 people
+>= 5 images: 423 people
+>= 10 images: 158 people
+>= 20 images: 62 people
