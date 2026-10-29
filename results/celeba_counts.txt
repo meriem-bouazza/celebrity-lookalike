@@ -1,0 +1,16 @@
+images: 202599
+identities: 10177
+count    10177.000000
+mean        19.907537
+std          8.925916
+min          1.000000
+25%         13.000000
+50%         21.000000
+75%         29.000000
+max         35.000000
+>= 2 images: 10133 identities
+>= 5 images: 9343 identities
+>= 10 images: 8369 identities
+>= 20 images: 6348 identities
+>= 25 images: 3661 identities
+>= 30 images: 2360 identities
