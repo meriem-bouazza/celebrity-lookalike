@@ -1,5 +1,5 @@
-# Python 3.11. Feste Versionen, damit Code ueberall gleich laeuft (Projektplan 2.4).
-# facenet-pytorch 2.6.0 erzwingt torch 2.2.x, numpy<2 und Pillow 10.2 (siehe docs/decisions.md, D12).
+# Python 3.11. Fixed versions, so the code runs the same everywhere.
+# facenet-pytorch 2.6.0 forces torch 2.2.x, numpy<2 and Pillow 10.2 (see docs/decisions.md, "2026-10-30: Python environment").
 torch==2.2.2
 torchvision==0.17.2
 facenet-pytorch==2.6.0

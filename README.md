@@ -54,11 +54,11 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Tested with Python 3.11 on Windows.
+Tested with Python 3.11 on Windows and in the GPU container (Linux). The container setup (conda-forge, steps) is described in `docs/decisions.md`, entry "2026-10-30: Python environment".
 
 ## Status
 
-Work in progress. Dataset statistics are done, training and demo are not.
+Work in progress. Dataset statistics are done. The data and the Python environment run on the GPU container. The split by person, training and the demo are not done yet.
 
 ## Limitations
 
@@ -78,7 +78,7 @@ Libraries, pre-trained models and datasets are from others. The training setup, 
 
 ## Use of AI tools
 
-We used Claude (Anthropic) for the exposé text and layout, the project plan, templates for the README and decision log, the dataset counting scripts, and for help with error messages. We reviewed and adapted all of it ourselves. Code and text written from here on is marked in the commit history where AI helped.
+We used Claude (Anthropic) as a helper: for the exposé text and layout, the project plan, drafts of the README, the decision log and the issues, the dataset counting scripts, and to understand error messages (for example when we set up the GPU container). We checked, ran and changed everything ourselves. This section lists what AI helped with, and we update it when that changes.
 
 ## License
 
