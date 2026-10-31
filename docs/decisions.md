@@ -71,3 +71,22 @@ Template:
   - The container runs out. Copy results to a laptop before that.
   - We share one GPU. Only one training at a time.
 - Who: Meriem, Melina
+
+## 2026-10-31: Experiment setup
+
+- Decision: We train the same network two times, once with cross-entropy and once with ArcFace. Then we compare them with 2, 5, 10 and 20 photos per person.
+- Why: We want to know if ArcFace helps when we only have a few photos per person.
+- Numbers:
+  - Network: ResNet-18 from ImageNet, photos 112x112, 512 numbers per face.
+  - People (first guess): We only use CelebA people with 20 or more photos (6348 people). 2000 for training, 500 for validation, 1000 for testing. Nobody is in two groups.
+  - Training photos: 2, 5, 10 or 20 per person. The smaller set is always part of the bigger set.
+  - Seeds (first guess): 3 for each setting. That makes 2 x 4 x 3 = 24 runs.
+  - Split: always the same, with seed 42.
+  - How we measure: Every test photo is the question once. All other test photos are the gallery. We use cosine similarity. Top 1 is right if the most similar photo shows the same person. Top 5 is right if one of the 5 most similar photos does. Each test person has 10 photos.
+  - Baseline: The ImageNet network without training on faces. We have to be better than this.
+- Alternatives: ResNet-50 (slower, maybe later). More people or more seeds (more time).
+- Risks:
+  - We do not know yet how long one run takes. We will do a small test run first (time per epoch, better than the baseline?) and change the numbers if we have to. A change gets a new entry here.
+  - The test people are celebrities. The result may be different for other people.
+  - With only 3 seeds the numbers can jump around. We will show how much.
+- Who: Meriem, Melina
