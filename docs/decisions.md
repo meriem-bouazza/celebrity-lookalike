@@ -122,3 +122,23 @@ Template:
   - LFW has no clear license. If the university or a publisher asks, we replace LFW photos with our own photos.
   - A ready-made face model for the fallback (for example facenet-pytorch, trained on VGGFace2) has its own license. Check it before we use it.
 - Who: Melina
+
+## 2026-11-03: Face detection and alignment
+
+- Decision: We align all photos with MTCNN and `detect_and_align()` (112x112, 5-point template), also the CelebA photos that are already cropped. Training, tests, gallery and demo then all look the same.
+- Why: The CelebA crops (`img_align_celeba`) are 178x218 with hair and background around the face. Our template is a tight crop around eyes, nose and mouth. If we train on the CelebA crops and the demo uses MTCNN crops, the model sees different faces in the demo than in training.
+- Numbers (`python -m whoisit.data.preprocess`, min confidence 0.9):
+
+  | | photos | faces found | rate |
+  |---|---|---|---|
+  | CelebA (first 100 lines of `identity_CelebA.txt`, GPU) | 100 | 100 | 100% |
+  | Webcam (Melina, light, angle, glasses varied, CPU) | 30 | 30 | 100% |
+  | LFW (all, earlier run) | 13233 | 13232 | 99.99% |
+
+  Speed on the GPU: 43 photos per second. All CelebA photos (202599) take about 80 minutes, the about 55000 photos we use take about 20 minutes.
+  The webcam photos stay on the laptop and are not in the repository.
+- Alternatives: Use the CelebA crops as they are and only resize them (faster, but different from the demo).
+- Risks:
+  - Faces seen from the side are found, but the alignment is tilted. In the demo we ask people to look into the camera.
+  - If MTCNN misses a photo of a val or test person, that person has fewer than 10 photos. `failed.csv` shows these photos; we check it after the full run.
+- Who: Melina
