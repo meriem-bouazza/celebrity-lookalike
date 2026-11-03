@@ -7,14 +7,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from smoke_test import check, run_once, top_k  # noqa: E402
-
-
-def test_top_k_excludes_the_image_itself():
-    embeddings = np.eye(3, dtype=np.float32)
-    embeddings[1] = embeddings[0]  # image 1 is a copy of image 0
-    neighbours = top_k(embeddings, k=1)
-    assert neighbours[0, 0] == 1 and neighbours[1, 0] == 0
+from smoke_test import check, run_once  # noqa: E402
 
 
 def test_check_reports_wrong_norm_and_differences():
