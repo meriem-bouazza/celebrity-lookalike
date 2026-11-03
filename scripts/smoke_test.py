@@ -26,6 +26,7 @@ import torch
 from torchvision.models import ResNet18_Weights, resnet18
 
 from whoisit.data.align import detect_and_align, load_image
+from whoisit.evaluate import top_k
 
 # torchvision's ImageNet normalisation (same values as in ResNet18_Weights.IMAGENET1K_V1).
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -106,13 +107,6 @@ def embed(model: torch.nn.Module, faces: np.ndarray) -> np.ndarray:
     std = torch.tensor(IMAGENET_STD).view(1, 3, 1, 1)
     features = model((x - mean) / std)
     return torch.nn.functional.normalize(features, dim=1).numpy()
-
-
-def top_k(embeddings: np.ndarray, k: int) -> np.ndarray:
-    """Indices (N, k) of the k most similar *other* images per image (cosine similarity)."""
-    similarity = embeddings @ embeddings.T  # cosine, because rows have norm 1
-    np.fill_diagonal(similarity, -np.inf)  # an image must not find itself
-    return np.argsort(-similarity, axis=1, kind="stable")[:, :k]
 
 
 def run_once(
