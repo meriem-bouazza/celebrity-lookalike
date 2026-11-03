@@ -33,7 +33,7 @@ Template:
   The LFW mean is 13233 / 5749. It is not in the result file.
 - Gallery: LFW people with at least 2 photos, up to 5 photos per person.
 - Source: LFW comes from the figshare copy that scikit-learn uses (https://ndownloader.figshare.com/files/5976018). The UMass page did not work on 2026-10-29.
-- Licenses: LICENSE_TODO
+- Licenses: see "2026-11-03: Dataset licenses" below.
 - Alternatives: VGGFace2 (license unclear). Small celebrity datasets from Kaggle.
 - Risks:
   - Some LFW people may also be in CelebA. We cannot check by name, because CelebA has no names.
@@ -90,3 +90,35 @@ Template:
   - The test people are celebrities. The result may be different for other people.
   - With only 3 seeds the numbers can jump around. We will show how much.
 - Who: Meriem, Melina
+
+## 2026-11-03: Dataset licenses
+
+- Decision: We never show CelebA photos outside our team, only numbers. Photos in the demo, on the poster and in the paper come from LFW or from ourselves (webcam, with our own consent).
+- Why: The CelebA agreement does not allow us to publish any part of the dataset. LFW has no license text, but it is a public benchmark and showing its photos in papers is common.
+- Key sentences, CelebA (https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html, section "Agreement", read on 2026-11-03):
+  > The CelebA dataset is available for non-commercial research purposes only.
+  >
+  > All images of the CelebA dataset are obtained from the Internet which are not property of MMLAB, The Chinese University of Hong Kong.
+  >
+  > You agree not to reproduce, duplicate, copy, sell, trade, resell or exploit for any commercial purposes, any portion of the images and any portion of derived data.
+  >
+  > You agree not to further copy, publish or distribute any portion of the CelebA dataset. Except, for internal use at a single site within the same organization it is allowed to make copies of the dataset.
+  >
+  > The MMLAB reserves the right to terminate your access to the CelebA dataset at any time.
+- Key sentences, LFW (http://vis-www.cs.umass.edu/lfw/, section "Disclaimer", read on 2026-11-03 from the web.archive.org copy, because the page did not load):
+  > Labeled Faces in the Wild is a public benchmark for face verification, also known as pair matching. No matter what the performance of an algorithm on LFW, it should not be used to conclude that an algorithm is suitable for any commercial purpose.
+  >
+  > LFW was published to help the research community make advances in face verification, not to provide a thorough vetting of commercial algorithms before deployment.
+
+  The page has no license and no terms of use. The photos are news photos from the web, so the copyright stays with the photographers.
+- What this means for us:
+  - Training and tests on CelebA: allowed (non-commercial research).
+  - The data on the shared container: allowed (copies for internal use at one site).
+  - CelebA photos in the demo, on the poster or in the paper: not allowed ("publish"). Models and numbers are fine. Whether "derived data" also covers our trained models only matters if we want to share them, so we do not upload weights.
+  - LFW photos in the demo gallery, on the poster and in the paper: OK for a university project. We cite LFW and only show a few photos.
+  - The demo runs only locally (see `app/app.py`), so we do not publish the gallery.
+- Alternatives: Ask MMLAB for permission to show CelebA photos (slow, not needed).
+- Risks:
+  - LFW has no clear license. If the university or a publisher asks, we replace LFW photos with our own photos.
+  - A ready-made face model for the fallback (for example facenet-pytorch, trained on VGGFace2) has its own license. Check it before we use it.
+- Who: Melina
