@@ -163,10 +163,11 @@ Template:
 - Why: We want to know that the code works before we start the 24 runs.
 - Numbers:
   - Test run with N = 5 (1983 people, 9915 photos), 3 epochs: the loss goes from 7.41 to 5.06. One epoch takes about 12 seconds.
-  - The GPU used about 1.7 GB of 16 GB (batch size 128).
+  - The GPU used about 1.7 GB in nvidia-smi (the peak value from PyTorch is 0.9 GB). Batch size is 128.
   - In the container we have to use `--workers 0`. The shared memory is only 63 MB, so more workers crash.
 - Risks: 3 epochs are not enough, the loss still falls fast. We do not know yet how many epochs we need. The pilot run will show this.
 - Who: Meriem
+
 ## 2026-11-05: One LFW folder
 
 - Decision: LFW lives in one folder everywhere: `data/sklearn/lfw_home/lfw_funneled/`, downloaded with `python scripts/download_lfw.py`. The old folder `data/lfw/lfw/` from the README is no longer used.
@@ -191,4 +192,20 @@ Template:
 - Risks:
   - We have not decided how many epochs we need. For this we need the validation numbers.
   - The GPU is shared. If somebody else uses it, our runs are slower.
+- Who: Meriem
+
+## 2026-11-05: One command per run
+
+- Decision: One command starts one run, for example `python -m whoisit.train --loss ce --n 5 --seed 42 --epochs 20`. The result is saved in `results/runs/<loss>_n<N>_seed<S>_ep<E>/result.json`. After every epoch we measure Top 1 and Top 5 on the validation people. The last epoch counts, not the best one.
+- Why: We need 24 runs and want the same numbers for every run.
+- Numbers:
+  - Validation: we use only photos that were aligned. 500 people and 4988 photos are left (of 5000). Top 1 and Top 5 are computed with the same code as the baseline.
+  - Seeds (first guess): 42, 43 and 44. The seed only changes the training. The photos we pick stay the same.
+  - Test run with N = 5, 3 epochs: Top 1 goes from 16 % to 27 %, Top 5 from 31 % to 48 %. The baseline without training had 12 % and 23 % (on the test people, not the validation people).
+  - Peak GPU memory is 0.9 GB. Training takes about 10 seconds per epoch.
+- Alternatives: Use the best epoch. This looks a bit better, but we would pick it with the validation people.
+- Risks:
+  - Top 1 still goes up after 3 epochs. We do not know yet how many epochs we need.
+  - The seeds only change the training, not the photos. So the spread over the 3 seeds does not show how much the choice of photos matters.
+  - A crashed run starts again from the beginning.
 - Who: Meriem
