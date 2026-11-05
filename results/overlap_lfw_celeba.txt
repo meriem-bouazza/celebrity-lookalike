@@ -1,0 +1,12 @@
+threshold: cosine similarity of the person centroids >= 0.8
+check on LFW: 6 of 1408681 pairs of different names reach it, 87.9% of people with 4+ photos are found again (two halves)
+CelebA training people: 1999 (5 photos each), LFW gallery people: 1679
+likely matches: 6 pairs, 6 CelebA people
+
+celeba_id,lfw_name,similarity
+2049,Conan_OBrien,0.931
+3462,George_W_Bush,0.916
+6308,Mariah_Carey,0.834
+9897,Thaksin_Shinawatra,0.830
+9672,Angela_Merkel,0.814
+7398,Oxana_Fedorova,0.803
