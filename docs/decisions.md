@@ -142,3 +142,17 @@ Template:
   - Faces seen from the side are found, but the alignment is tilted. In the demo we ask people to look into the camera.
   - If MTCNN misses a photo of a val or test person, that person has fewer than 10 photos. `failed.csv` shows these photos; we check it after the full run.
 - Who: Melina
+
+## 2026-11-05: Aligned CelebA photos
+
+- Decision: We use CelebA photos that we aligned with MTCNN, like in the demo. Minimum confidence is 0.9.
+- Why: Training photos and demo photos should look the same (see the entry from 2026-11-03).
+- Numbers:
+  - We aligned 61990 photos: up to 25 for each training person, 10 for each validation person and 10 for each test person.
+  - 171 photos had no face (99.72 % found). We do not use them.
+  - Training people with fewer than 20 aligned photos are left out for every N. That leaves 1983 of the 2000 people. All values of N use the same people.
+- Alternatives: Use the CelebA crops as they are. This is simpler, but different from the demo.
+- Risks:
+  - The 171 photos without a face may be the hard ones (side view, hat). Our data is maybe a bit easier than real life.
+  - Some validation and test people may have fewer than 10 photos now. We have not checked this yet.
+- Who: Meriem
