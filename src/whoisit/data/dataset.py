@@ -12,6 +12,7 @@ from whoisit.data.splits import SEED, load_identities
 
 TRAIN_PEOPLE_FILE = Path("splits/train_people.txt")
 ALIGNED_META = Path("data/aligned/celeba/meta.csv")
+VAL_PHOTOS_FILE = Path("splits/val_photos.csv")
 N_VALUES = (2, 5, 10, 20)
 POOL_SIZE = 25  # photos per person that we align, some of them can fail
 
@@ -48,6 +49,14 @@ def pick_aligned_photos(df, people, n, aligned, seed=SEED):
     keep = counts[counts >= max(N_VALUES)].index
     pool = pool[pool["person"].isin(keep)]
     return pick_train_photos(pool, keep, n, seed)
+
+
+def load_val_photos(aligned, path=VAL_PHOTOS_FILE):
+    photos = pd.read_csv(path)
+    photos = photos[photos["image"].isin(aligned)]
+    # a query needs at least one other photo of the same person
+    counts = photos.groupby("person")["image"].transform("size")
+    return photos[counts >= 2].reset_index(drop=True)
 
 
 def main():
