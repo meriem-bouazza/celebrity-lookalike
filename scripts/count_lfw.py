@@ -1,6 +1,6 @@
 from pathlib import Path
 
-LFW_DIR = Path("data/lfw/lfw")
+LFW_DIR = Path("data/sklearn/lfw_home/lfw_funneled")  # from scripts/download_lfw.py
 OUTPUT_FILE = Path("results/lfw_counts.txt")
 
 # one folder per person
