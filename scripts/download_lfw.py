@@ -1,8 +1,8 @@
 """Download LFW (Labeled Faces in the Wild) for development and tests, and write a metadata CSV.
 
-LFW is only used to develop and test the pipeline (real faces with identities) until the
-project dataset is chosen; it is not used for the experiments. Source: http://vis-www.cs.umass.edu/lfw/
-(downloaded through scikit-learn). Nothing is written into the repository except under data/,
+LFW is the demo gallery and the test data for the pipeline (real faces with names); it is not used
+for the experiments. Source: http://vis-www.cs.umass.edu/lfw/ (the funneled version, downloaded
+through scikit-learn). Nothing is written into the repository except under data/,
 which is not versioned.
 
 Usage:

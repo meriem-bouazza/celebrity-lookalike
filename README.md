@@ -28,23 +28,21 @@ No photos are stored in this repository.
 - Training and evaluation: CelebA (aligned images, `identity_CelebA.txt`, `list_attr_celeba.txt`)
 - Demo gallery: LFW (people with at least 2 images)
 
-Put the files here:
+Put the CelebA files here:
 
 ```
 data/celeba/img_align_celeba/
 data/celeba/identity_CelebA.txt
 data/celeba/list_attr_celeba.txt
-data/lfw/lfw/
 ```
 
-LFW can be downloaded with:
+LFW is downloaded by a script. It lands in `data/sklearn/lfw_home/lfw_funneled/`, and the script writes the list of images to `data/lfw_meta.csv`:
 
 ```
-curl.exe -L -C - -o data/lfw/lfw.tgz "https://ndownloader.figshare.com/files/5976018"
-tar -xzf data/lfw/lfw.tgz -C data/lfw
+python scripts/download_lfw.py
 ```
 
-Dataset statistics are in `results/`. Licenses: TODO, see `docs/decisions.md`.
+Dataset statistics are in `results/`. We may never show CelebA photos outside our team. The licenses and what they allow are in `docs/decisions.md`, entry "2026-11-03: Dataset licenses".
 
 ## Setup
 
@@ -56,9 +54,27 @@ pip install -r requirements.txt
 
 Tested with Python 3.11 on Windows and in the GPU container (Linux). The container setup (conda-forge, steps) is described in `docs/decisions.md`, entry "2026-10-30: Python environment".
 
+## Run
+
+Tests (the tests that need real faces are skipped if LFW is missing):
+
+```
+python -m pytest
+```
+
+Demo gallery with the ready-made face model, then the top 3 look-alikes for one photo:
+
+```
+python -m whoisit.data.preprocess --metadata data/lfw_meta.csv --out-dir data/aligned/lfw
+python -m whoisit.gallery --aligned-dir data/aligned/lfw --out data/gallery/pretrained.npz
+python -m whoisit.gallery --out data/gallery/pretrained.npz --photo me.jpg
+```
+
+Add `--device cuda` to use the GPU. The split by person is made with `python -m whoisit.data.splits`.
+
 ## Status
 
-Work in progress. Dataset statistics are done. The data and the Python environment run on the GPU container. The split by person, training and the demo are not done yet.
+Work in progress. Done: dataset statistics, split by person, face detection and alignment, evaluation (top-1 and top-5), and the fallback with a ready-made face model (top-1 95.9 % on the LFW gallery). Not done yet: training with cross-entropy and ArcFace, the baseline without training, and the Gradio demo.
 
 ## Limitations
 

@@ -142,3 +142,11 @@ Template:
   - Faces seen from the side are found, but the alignment is tilted. In the demo we ask people to look into the camera.
   - If MTCNN misses a photo of a val or test person, that person has fewer than 10 photos. `failed.csv` shows these photos; we check it after the full run.
 - Who: Melina
+## 2026-11-05: One LFW folder
+
+- Decision: LFW lives in one folder everywhere: `data/sklearn/lfw_home/lfw_funneled/`, downloaded with `python scripts/download_lfw.py`. The old folder `data/lfw/lfw/` from the README is no longer used.
+- Why: The README and `count_lfw.py` used `data/lfw/lfw/` (the plain LFW download), but the tests, the preprocessing and the gallery used the funneled version from scikit-learn. In the container the LFW tests were skipped, because they looked in the other folder.
+- Numbers: Both versions have the same 5749 people and 13233 photos (`results/lfw_counts.txt` is the same). The gallery (top-1 95.92 %) was built from the funneled version.
+- Alternatives: Keep `data/lfw/lfw/` and point the tests there with `WHOISIT_LFW_DIR`. That still works if the container cannot download.
+- Risks: The funneled photos are already roughly aligned by the LFW authors. MTCNN aligns them again, so this should not matter.
+- Who: Melina
