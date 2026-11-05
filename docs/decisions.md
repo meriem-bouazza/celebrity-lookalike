@@ -142,6 +142,31 @@ Template:
   - Faces seen from the side are found, but the alignment is tilted. In the demo we ask people to look into the camera.
   - If MTCNN misses a photo of a val or test person, that person has fewer than 10 photos. `failed.csv` shows these photos; we check it after the full run.
 - Who: Melina
+
+## 2026-11-05: Aligned CelebA photos
+
+- Decision: We use CelebA photos that we aligned with MTCNN, like in the demo. Minimum confidence is 0.9.
+- Why: Training photos and demo photos should look the same (see the entry from 2026-11-03).
+- Numbers:
+  - We aligned 61990 photos: up to 25 for each training person, 10 for each validation person and 10 for each test person.
+  - 171 photos had no face (99.72 % found). We do not use them.
+  - Training people with fewer than 20 aligned photos are left out for every N. That leaves 1983 of the 2000 people. All values of N use the same people.
+- Alternatives: Use the CelebA crops as they are. This is simpler, but different from the demo.
+- Risks:
+  - The 171 photos without a face may be the hard ones (side view, hat). Our data is maybe a bit easier than real life.
+  - Some validation and test people may have fewer than 10 photos now. We have not checked this yet.
+- Who: Meriem
+
+## 2026-11-05: First training run
+
+- Decision: We train with cross-entropy first. A small test run works. Settings (first guess): ResNet-18 from ImageNet, AdamW, learning rate 0.0003, batch size 128. The only change to the photos is flipping them left to right.
+- Why: We want to know that the code works before we start the 24 runs.
+- Numbers:
+  - Test run with N = 5 (1983 people, 9915 photos), 3 epochs: the loss goes from 7.41 to 5.06. One epoch takes about 12 seconds.
+  - The GPU used about 1.7 GB of 16 GB (batch size 128).
+  - In the container we have to use `--workers 0`. The shared memory is only 63 MB, so more workers crash.
+- Risks: 3 epochs are not enough, the loss still falls fast. We do not know yet how many epochs we need. The pilot run will show this.
+- Who: Meriem
 ## 2026-11-05: One LFW folder
 
 - Decision: LFW lives in one folder everywhere: `data/sklearn/lfw_home/lfw_funneled/`, downloaded with `python scripts/download_lfw.py`. The old folder `data/lfw/lfw/` from the README is no longer used.

@@ -35,3 +35,4 @@ paper/**/*.blg
 .idea/
 .DS_Store
 Thumbs.db
+/checkpoints/
