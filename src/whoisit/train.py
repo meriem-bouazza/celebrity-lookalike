@@ -51,6 +51,8 @@ def main():
     optimizer = torch.optim.AdamW(params, lr=args.lr)
 
     for epoch in range(1, args.epochs + 1):
+        if device == "cuda":
+            torch.cuda.reset_peak_memory_stats()
         start = time.time()
         total = 0.0
         for images, labels in loader:
@@ -61,7 +63,10 @@ def main():
             optimizer.step()
             total += loss.item()
         seconds = time.time() - start
-        print(f"epoch {epoch}: loss {total / len(loader):.3f}, {seconds:.0f} s")
+        line = f"epoch {epoch}: loss {total / len(loader):.3f}, {seconds:.0f} s"
+        if device == "cuda":
+            line += f", peak {torch.cuda.max_memory_allocated() / 1024**3:.1f} GB"
+        print(line)
 
     CHECKPOINT_DIR.mkdir(exist_ok=True)
     path = CHECKPOINT_DIR / f"ce_n{args.n}_seed{args.seed}.pt"
