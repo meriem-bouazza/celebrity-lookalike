@@ -175,3 +175,20 @@ Template:
 - Alternatives: Keep `data/lfw/lfw/` and point the tests there with `WHOISIT_LFW_DIR`. That still works if the container cannot download.
 - Risks: The funneled photos are already roughly aligned by the LFW authors. MTCNN aligns them again, so this should not matter.
 - Who: Melina
+
+## 2026-11-05: Pilot run (time and memory)
+
+- Decision: We keep the numbers from the experiment setup (1983 people, 3 seeds, 24 runs). We use batch size 128 for all runs.
+- Why: One epoch takes about the same time for every batch size, so a bigger batch does not help. 128 is in the middle.
+- Numbers:
+  - Test with N = 20 (1983 people, 39660 photos), 3 epochs for each batch size. Peak GPU memory is the value from PyTorch, not from nvidia-smi.
+  - Batch size 64: about 45 s per epoch, peak 0.6 GB, loss 1.76 after 3 epochs.
+  - Batch size 128: about 42 s per epoch, peak 0.9 GB, loss 2.01 after 3 epochs.
+  - Batch size 256: about 42 s per epoch, peak 1.6 GB, loss 2.70 after 3 epochs.
+  - The time grows with the number of photos. Compared to N = 20, N = 10 needs about half, N = 5 a quarter and N = 2 a tenth. All 24 runs together need about 8 minutes for one epoch (45 s x 11.1). With 20 epochs that is about 2.8 hours, with 30 epochs about 4.2 hours.
+  - The GPU is idle most of the time, because we load the photos without workers (the shared memory in the container is too small). Loading the photos is the slow part.
+- Alternatives: Keep all photos in memory to be faster (about 1.5 GB for N = 20). We do not need this yet.
+- Risks:
+  - We have not decided how many epochs we need. For this we need the validation numbers.
+  - The GPU is shared. If somebody else uses it, our runs are slower.
+- Who: Meriem
