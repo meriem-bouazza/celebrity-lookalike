@@ -209,3 +209,20 @@ Template:
   - The seeds only change the training, not the photos. So the spread over the 3 seeds does not show how much the choice of photos matters.
   - A crashed run starts again from the beginning.
 - Who: Meriem
+
+## 2026-11-05: Add the ArcFace loss
+
+- Decision: ArcFace is chosen with `--loss arcface`. Everything else is the same as for cross-entropy. First guess for the settings: margin 0.5 and scale 64 (the usual values from the ArcFace paper). We do not tune them now. They are saved in `result.json`.
+- Why: We want to compare ArcFace with cross-entropy, so only the loss may be different. The same seed now gives the same photo order and the same flips for both losses. Only the loss and its head are different.
+- Numbers:
+  - The start loss is about 40 for ArcFace and about 7.4 for cross-entropy. The two numbers cannot be compared, so we compare Top 1 and Top 5.
+  - Test run with N = 5, seed 42, 3 epochs on the validation people:
+    - Cross-entropy: Top 1 25.9 %, Top 5 45.6 %.
+    - ArcFace: Top 1 22.5 %, Top 5 40.4 %.
+  - Because of the new seed handling, the cross-entropy test numbers changed a little (Top 1 from 26.9 % to 25.9 %).
+  - ArcFace also runs with N = 2 (Top 1 13.5 %) and N = 20 (Top 1 59.8 %, about 40 s per epoch). The loss goes down in all cases. Peak GPU memory stays at 0.9 GB.
+- Risks:
+  - After 3 epochs ArcFace is behind cross-entropy at N = 5, but it still gains about 8 points per epoch, while cross-entropy slows down. Three epochs are too short to say which loss is better.
+  - Margin and scale are not tuned. A weak ArcFace result could also come from these settings.
+  - We tested only one seed.
+- Who: Meriem
