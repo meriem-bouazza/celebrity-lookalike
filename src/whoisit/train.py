@@ -92,6 +92,8 @@ def main(argv=None):
     loss_fn = nn.CrossEntropyLoss()
     params = list(model.parameters()) + list(head.parameters())
     optimizer = torch.optim.AdamW(params, lr=args.lr)
+    # the learning rate goes down from --lr to 0 over all epochs
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
     # the heads use different amounts of random numbers, so we set the seed again here:
     # now every loss sees the same order of photos and the same flips
@@ -110,6 +112,7 @@ def main(argv=None):
             loss.backward()
             optimizer.step()
             total += loss.item()
+        scheduler.step()
         seconds = time.time() - start
         row = {"epoch": epoch, "loss": total / len(loader), "seconds": seconds}
         line = f"epoch {epoch}: loss {row['loss']:.3f}, {seconds:.0f} s"
@@ -128,7 +131,8 @@ def main(argv=None):
     # result.json comes last: if it exists, the run is complete
     save_result(folder, {
         "options": {"loss": args.loss, "n": args.n, "seed": args.seed, "epochs": args.epochs,
-                    "batch_size": args.batch_size, "lr": args.lr, **head_options},
+                    "batch_size": args.batch_size, "lr": args.lr, "lr_schedule": "cosine",
+                    **head_options},
         "train": {"people": data.num_people, "photos": len(data)},
         "val": {"people": val_data.num_people, "photos": len(val_data)},
         "epochs": epochs,
