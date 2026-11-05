@@ -226,3 +226,20 @@ Template:
   - Margin and scale are not tuned. A weak ArcFace result could also come from these settings.
   - We tested only one seed.
 - Who: Meriem
+
+## 2026-11-05: Number of epochs
+
+- Decision: Every run trains for 20 epochs, for both losses. The last epoch counts.
+- Why: In the test runs the validation numbers stop improving before epoch 20. Cross-entropy is flat after about epoch 11, ArcFace with N = 2 after about epoch 15. We use the same number for both losses and all N, so the comparison is fair.
+- Numbers:
+  - Cross-entropy, N = 5, seed 42, 15 epochs: Top 1 is 32.5 % after epoch 5, 35.8 % after epoch 10 and 36.2 % after epoch 15. After epoch 11 it changes by less than 0.2 points. The training loss is 0.02 at the end.
+  - Cross-entropy, N = 2, seed 42, 30 epochs: Top 1 is about 19 % from epoch 8 on and does not go up until epoch 30 (19.2 %).
+  - ArcFace, N = 5, seed 42, 15 epochs: Top 1 is 30.0 % after epoch 5, 34.4 % after epoch 10 and 35.0 % after epoch 15. It goes up and down by about 1 point between epochs. The training loss is still 1.2 at epoch 15.
+  - ArcFace, N = 2, seed 42, 30 epochs: Top 1 is about 21 % from epoch 15 on (20.9 % after epoch 20, 21.2 % after epoch 30). The training loss is 0.04 at epoch 20.
+  - Time: about 10 s per epoch for N = 5. The 12 cross-entropy runs with 20 epochs need about 80 minutes of training (per run: N = 20 about 14 min, N = 10 about 7 min, N = 5 about 3.5 min, N = 2 about 1.5 min; 3 seeds each) plus the validation.
+- Alternatives: 30 epochs. The runs with N = 2 show no gain after epoch 20, and it would take 1.5 times longer. Using the best epoch, but we decided against this before.
+- Risks:
+  - We tested long runs only with one seed and only for N = 2 and N = 5. N = 10 and N = 20 have more steps per epoch, so 20 epochs should be enough there too.
+  - ArcFace with N = 5 may still improve a bit after epoch 15, because its loss was still going down. We will see this in the curves of the real runs.
+  - ArcFace with N = 5 goes up and down by about 1 point between epochs. This is about as big as the difference between the two losses at N = 5 (1.2 points) and half of the difference at N = 2 (2.0 points). Because the last epoch counts, the 3 seeds will show how much this matters.
+- Who: Meriem
