@@ -16,3 +16,11 @@ class SoftmaxHead(nn.Module):
     def forward(self, embeddings, labels):
         # labels are not used here, but ArcFace needs them, so both heads are called the same way
         return self.linear(embeddings)
+
+
+# name for --loss -> head class. A new head only has to be added here.
+HEADS = {"ce": SoftmaxHead}
+
+
+def make_head(loss, num_people):
+    return HEADS[loss](num_people)
