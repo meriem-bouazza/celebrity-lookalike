@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from whoisit.data.dataset import N_VALUES, pick_train_photos
+from whoisit.data.dataset import N_VALUES, pick_aligned_photos, pick_train_photos
 
 
 def fake_df(people=30, photos=25):
@@ -38,3 +38,32 @@ def test_too_few_photos():
     df = fake_df(photos=3)
     with pytest.raises(ValueError):
         pick_train_photos(df, [0], 5)
+
+def test_failed_photos_are_not_used():
+    df = fake_df()
+    people = list(range(30))
+    failed = {f"{p}_{i}.jpg" for p in people for i in range(0, 25, 7)}
+    aligned = set(df["image"]) - failed
+    previous = set()
+    for n in N_VALUES:
+        photos = pick_aligned_photos(df, people, n, aligned)
+        assert not set(photos["image"]) & failed
+        assert (photos.groupby("person").size() == n).all()
+        assert previous <= set(photos["image"])
+        previous = set(photos["image"])
+
+
+def test_people_with_less_than_pool_size_photos():
+    df = fake_df(people=10, photos=22)
+    photos = pick_aligned_photos(df, list(range(10)), 20, set(df["image"]))
+    assert len(photos) == 10 * 20
+
+
+def test_person_with_too_few_aligned_photos_is_left_out():
+    df = fake_df(people=5, photos=22)
+    failed = {f"0_{i}.jpg" for i in range(3)}  # person 0 keeps only 19 photos
+    aligned = set(df["image"]) - failed
+    for n in N_VALUES:
+        photos = pick_aligned_photos(df, list(range(5)), n, aligned)
+        assert set(photos["person"]) == {1, 2, 3, 4}
+        assert (photos.groupby("person").size() == n).all()
