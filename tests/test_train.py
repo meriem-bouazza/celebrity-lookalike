@@ -166,10 +166,68 @@ def test_seed_changes_the_training_but_not_the_photos(fake_repo, monkeypatch):
 
 
 def test_new_head_only_needs_an_entry_in_heads(fake_repo, monkeypatch):
-    # this is how arcface will be added later
     monkeypatch.setitem(HEADS, "other", SoftmaxHead)
     assert isinstance(make_head("other", 3), SoftmaxHead)
 
     train.main(["--loss", "other", *RUN])
 
     assert read_result(fake_repo / "results/runs/other_n2_seed1_ep2")["options"]["loss"] == "other"
+
+
+def test_arcface_run_loss_goes_down_and_result_has_margin_and_scale(fake_repo):
+    # one color per person, so the network has something it can learn
+    for person, color in zip(TRAIN_PEOPLE, ("red", "blue")):
+        for path in (fake_repo / f"data/aligned/celeba/images/{person}").iterdir():
+            Image.new("RGB", (112, 112), color).save(path)
+
+    train.main(["--loss", "arcface", "--n", "2", "--epochs", "5", "--batch-size", "4", "--seed", "1"])
+
+    result = read_result(fake_repo / "results/runs/arcface_n2_seed1_ep5")
+    assert result["options"]["loss"] == "arcface"
+    assert result["options"]["margin"] == 0.5
+    assert result["options"]["scale"] == 64.0
+    losses = [row["loss"] for row in result["epochs"]]
+    assert losses[-1] < losses[0]
+
+
+def test_margin_and_scale_options_reach_the_head(fake_repo, monkeypatch):
+    made = []
+
+    def spy(loss, num_people, **options):
+        made.append(options)
+        return make_head(loss, num_people, **options)
+    monkeypatch.setattr(train, "make_head", spy)
+
+    train.main(["--loss", "arcface", "--margin", "0.3", "--scale", "30", *RUN])
+    train.main(["--loss", "ce", "--margin", "0.3", "--scale", "30", *RUN])
+
+    assert made == [{"margin": 0.3, "scale": 30.0}, {}]  # cross-entropy gets nothing
+    options = read_result(fake_repo / "results/runs/arcface_n2_seed1_ep2")["options"]
+    assert (options["margin"], options["scale"]) == (0.3, 30.0)
+    assert "margin" not in read_result(fake_repo / "results/runs/ce_n2_seed1_ep2")["options"]
+
+
+def test_every_loss_sees_the_same_photos_and_flips(fake_repo, monkeypatch):
+    seen = {}
+
+    def run(loss):
+        batches = seen[loss] = []
+
+        def record(model, inputs):
+            if model.training:  # validation also calls the model
+                batches.append(inputs[0].clone())
+
+        def spy():
+            model = Backbone(pretrained=False)
+            model.register_forward_pre_hook(record)
+            return model
+        monkeypatch.setattr(train, "Backbone", spy)
+        train.main(["--loss", loss, "--n", "5", "--epochs", "2", "--batch-size", "4", "--seed", "1"])
+
+    run("ce")
+    run("arcface")
+
+    # 10 photos with batch size 4: 2 batches in each of the 2 epochs
+    assert len(seen["ce"]) == len(seen["arcface"]) == 4
+    for a, b in zip(seen["ce"], seen["arcface"]):
+        assert torch.equal(a, b)
