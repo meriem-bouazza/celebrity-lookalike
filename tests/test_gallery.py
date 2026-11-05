@@ -1,6 +1,6 @@
 import numpy as np
 
-from whoisit.gallery import embed_pretrained, load_pretrained, select_gallery
+from whoisit.gallery import embed_pretrained, load_pretrained, select_gallery, top_people
 
 
 def rows(counts):
@@ -26,3 +26,10 @@ def test_embeddings_shape_and_norm():
     embeddings = embed_pretrained(model, faces)
     assert embeddings.shape == (3, 512)
     np.testing.assert_allclose(np.linalg.norm(embeddings, axis=1), 1.0, atol=1e-5)
+
+
+def test_top_people_scores_each_person_by_best_photo():
+    embeddings = np.eye(4)
+    identities = np.array(["a", "a", "b", "c"])
+    query = np.array([0.6, 0.0, 0.8, 0.0])  # b's photo is the closest, then a's first photo
+    assert top_people(query, embeddings, identities, k=2) == [("b", 0.8), ("a", 0.6)]
