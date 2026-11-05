@@ -1,0 +1,5 @@
+model: ResNet-18, ImageNet weights, no training on faces
+test photos: 10000, faces found: 9964
+used: 9964 photos of 1000 people (people with 2+ found faces)
+top 1: 12.22%
+top 5: 22.57%

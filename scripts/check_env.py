@@ -1,7 +1,7 @@
 """Checks that the environment from requirements.txt works (plan, task 2.4).
 
 Usage: python scripts/check_env.py
-Run it on both laptops and in the GPU environment (Colab/Kaggle).
+Run it on both laptops and in the GPU container.
 """
 
 import platform

@@ -1,5 +1,5 @@
 # data/
 
-Dieser Ordner ist nicht versioniert (siehe `.gitignore`). Datensatzbilder werden nie ins Repository hochgeladen.
+This folder is not versioned (see `.gitignore`). Dataset images are never uploaded to the repository.
 
-Bezug, Lizenz und Ablageort des Datensatzes: siehe `docs/datasets.md` (wird in Aufgabe 2.2/2.6 ausgefuellt).
+Where each dataset goes: see the README, section "Data". Licenses: `docs/decisions.md`, entry "2026-11-03: Dataset licenses".
