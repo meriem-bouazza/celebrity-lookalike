@@ -81,16 +81,20 @@ def build_gallery(aligned_dir: Path, out: Path, device: str = "cpu", batch_size:
 
 
 def top_people(query: np.ndarray, embeddings: np.ndarray, identities: np.ndarray,
-               k: int = 3) -> list[tuple[str, float]]:
-    """The k most similar people to ``query`` (D,), each scored by their best photo (cosine similarity)."""
+               k: int = 3) -> list[tuple[str, float, int]]:
+    """The k most similar people to ``query`` (D,) as (identity, score, row of their best photo).
+
+    Each person is scored by their best photo (cosine similarity).
+    """
     similarity = embeddings @ query  # cosine, because all rows have norm 1
     best = {}
-    for identity, score in zip(identities, similarity):
-        best[identity] = max(best.get(identity, -np.inf), float(score))
-    return sorted(best.items(), key=lambda item: -item[1])[:k]
+    for i, (identity, score) in enumerate(zip(identities, similarity)):
+        if identity not in best or score > best[identity][1]:
+            best[identity] = (identity, float(score), i)
+    return sorted(best.values(), key=lambda item: -item[1])[:k]
 
 
-def look_up(photo: Path, gallery: Path, device: str = "cpu", k: int = 3) -> list[tuple[str, float]]:
+def look_up(photo: Path, gallery: Path, device: str = "cpu", k: int = 3) -> list[tuple[str, float, int]]:
     """Detect and align the face in ``photo`` and return its k most similar gallery people."""
     face = detect_and_align(load_image(photo), device=device)
     if face is None:
@@ -109,7 +113,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.photo:
-        for rank, (identity, score) in enumerate(look_up(args.photo, args.out, args.device), 1):
+        for rank, (identity, score, _) in enumerate(look_up(args.photo, args.out, args.device), 1):
             print(f"{rank}. {identity.replace('_', ' ')}  (similarity {score:.2f})")
         return
 
