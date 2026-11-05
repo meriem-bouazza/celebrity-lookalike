@@ -156,3 +156,14 @@ Template:
   - The 171 photos without a face may be the hard ones (side view, hat). Our data is maybe a bit easier than real life.
   - Some validation and test people may have fewer than 10 photos now. We have not checked this yet.
 - Who: Meriem
+
+## 2026-11-05: First training run
+
+- Decision: We train with cross-entropy first. A small test run works. Settings (first guess): ResNet-18 from ImageNet, AdamW, learning rate 0.0003, batch size 128. The only change to the photos is flipping them left to right.
+- Why: We want to know that the code works before we start the 24 runs.
+- Numbers:
+  - Test run with N = 5 (1983 people, 9915 photos), 3 epochs: the loss goes from 7.41 to 5.06. One epoch takes about 12 seconds.
+  - The GPU used about 1.7 GB of 16 GB (batch size 128).
+  - In the container we have to use `--workers 0`. The shared memory is only 63 MB, so more workers crash.
+- Risks: 3 epochs are not enough, the loss still falls fast. We do not know yet how many epochs we need. The pilot run will show this.
+- Who: Meriem

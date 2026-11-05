@@ -27,7 +27,8 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--seed", type=int, default=SEED)
-    parser.add_argument("--workers", type=int, default=8)
+    # in the container the shared memory (/dev/shm) is only 63 MB, more workers crash
+    parser.add_argument("--workers", type=int, default=0)
     return parser.parse_args()
 
 
