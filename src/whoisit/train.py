@@ -19,7 +19,7 @@ from whoisit.data.images import FaceDataset
 from whoisit.data.splits import SEED, load_identities
 from whoisit.evaluate import top_k_accuracy
 from whoisit.models.backbone import Backbone
-from whoisit.models.heads import HEADS, make_head
+from whoisit.models.heads import ARCFACE_MARGIN, ARCFACE_SCALE, HEADS, make_head
 from whoisit.utils import set_seed
 
 RUNS_DIR = Path("results/runs")
@@ -37,6 +37,8 @@ def parse_args(argv=None):
     # in the container the shared memory (/dev/shm) is only 63 MB, more workers crash
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--force", action="store_true", help="run again if the result already exists")
+    parser.add_argument("--margin", type=float, default=ARCFACE_MARGIN, help="only for arcface")
+    parser.add_argument("--scale", type=float, default=ARCFACE_SCALE, help="only for arcface")
     return parser.parse_args(argv)
 
 
@@ -85,10 +87,15 @@ def main(argv=None):
     print(f"val: {val_data.num_people} people, {len(val_data)} photos")
 
     model = Backbone().to(device)
-    head = make_head(args.loss, data.num_people).to(device)
+    head_options = {"margin": args.margin, "scale": args.scale} if args.loss == "arcface" else {}
+    head = make_head(args.loss, data.num_people, **head_options).to(device)
     loss_fn = nn.CrossEntropyLoss()
     params = list(model.parameters()) + list(head.parameters())
     optimizer = torch.optim.AdamW(params, lr=args.lr)
+
+    # the heads use different amounts of random numbers, so we set the seed again here:
+    # now every loss sees the same order of photos and the same flips
+    set_seed(args.seed)
 
     epochs = []
     for epoch in range(1, args.epochs + 1):
@@ -121,7 +128,7 @@ def main(argv=None):
     # result.json comes last: if it exists, the run is complete
     save_result(folder, {
         "options": {"loss": args.loss, "n": args.n, "seed": args.seed, "epochs": args.epochs,
-                    "batch_size": args.batch_size, "lr": args.lr},
+                    "batch_size": args.batch_size, "lr": args.lr, **head_options},
         "train": {"people": data.num_people, "photos": len(data)},
         "val": {"people": val_data.num_people, "photos": len(val_data)},
         "epochs": epochs,
