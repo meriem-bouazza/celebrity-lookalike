@@ -57,11 +57,12 @@ def main() -> None:
 
     demo = gr.Interface(
         make_match(args.model, args.device),
-        gr.Image(sources=["webcam", "upload"], type="numpy", label="Your photo"),
-        gr.Gallery(label="Your top 3 look-alikes", columns=3, object_fit="contain"),
+        gr.Image(sources=["webcam", "upload"], type="numpy", label="Your Photo"),
+        gr.Gallery(label="Your Top 3 Look-Alikes", columns=3, object_fit="contain"),
         title="Celebrity Look-Alike",
         description="The number is the cosine similarity (1 = same face), not a probability. "
-                    "Your photo is not stored.",
+                    "Your photo is not saved. Temporary files are deleted after 5 minutes.",
+        submit_btn="Find My Look-Alikes",
         flagging_mode="never",
         delete_cache=(300, 300),
     )
