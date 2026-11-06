@@ -98,7 +98,7 @@ def test_fake_run_writes_the_result(fake_repo):
     folder = fake_repo / "results/runs/ce_n2_seed1_ep2"
     result = read_result(folder)
     assert result["options"] == {"loss": "ce", "n": 2, "seed": 1, "epochs": 2,
-                                 "batch_size": 4, "lr": 3e-4}
+                                 "batch_size": 4, "lr": 3e-4, "lr_schedule": "cosine"}
     assert result["train"] == {"people": 2, "photos": 4}
     assert result["val"] == {"people": 2, "photos": 5}  # 503 is dropped, 502_2 was not aligned
     assert [row["epoch"] for row in result["epochs"]] == [1, 2]
@@ -205,6 +205,26 @@ def test_margin_and_scale_options_reach_the_head(fake_repo, monkeypatch):
     options = read_result(fake_repo / "results/runs/arcface_n2_seed1_ep2")["options"]
     assert (options["margin"], options["scale"]) == (0.3, 30.0)
     assert "margin" not in read_result(fake_repo / "results/runs/ce_n2_seed1_ep2")["options"]
+
+
+@pytest.mark.parametrize("loss", ["ce", "arcface"])
+def test_learning_rate_goes_down_to_0(fake_repo, monkeypatch, loss):
+    rates = []
+    original = torch.optim.lr_scheduler.CosineAnnealingLR
+
+    class Recording(original):
+        def step(self, *args, **kwargs):
+            super().step(*args, **kwargs)
+            rates.append(self.get_last_lr()[0])
+    monkeypatch.setattr(torch.optim.lr_scheduler, "CosineAnnealingLR", Recording)
+
+    train.main(["--loss", loss, "--n", "2", "--epochs", "4", "--batch-size", "4", "--seed", "1"])
+
+    # one value at the start and one after each of the 4 epochs
+    assert len(rates) == 5
+    assert rates[0] == pytest.approx(3e-4)
+    assert all(after < before for before, after in zip(rates, rates[1:]))
+    assert rates[-1] == pytest.approx(0, abs=1e-9)
 
 
 def test_every_loss_sees_the_same_photos_and_flips(fake_repo, monkeypatch):
