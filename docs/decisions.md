@@ -243,3 +243,22 @@ Template:
   - ArcFace with N = 5 may still improve a bit after epoch 15, because its loss was still going down. We will see this in the curves of the real runs.
   - ArcFace with N = 5 goes up and down by about 1 point between epochs. This is about as big as the difference between the two losses at N = 5 (1.2 points) and half of the difference at N = 2 (2.0 points). Because the last epoch counts, the 3 seeds will show how much this matters.
 - Who: Meriem
+
+## 2026-11-06: Learning rate schedule and cross-entropy runs
+
+- Decision: The learning rate now goes down from 0.0003 to 0 over the 20 epochs (cosine schedule), for both losses. We ran the 12 cross-entropy runs again with it. The results are in `results/runs/ce_n<N>_seed<S>_ep20/result.json`.
+- Why: In the first 12 runs without a schedule, all 3 seeds with N = 20 had a short drop around epochs 13 to 15. The loss jumped from about 0.02 to 0.36 to 0.49 and Top 1 fell by 5 to 8 points. Such a drop at epoch 20 would make the result too low, and the last epoch counts. With the schedule the end of the training is calm.
+- Numbers (validation people, last epoch, mean of 3 seeds, spread in brackets):
+  - N = 2: Top 1 19.2 % (19.0 to 19.3), Top 5 35.1 %
+  - N = 5: Top 1 34.8 % (33.9 to 35.6), Top 5 56.0 %
+  - N = 10: Top 1 55.7 % (55.2 to 56.1), Top 5 75.1 %
+  - N = 20: Top 1 70.1 % (69.3 to 70.8), Top 5 85.3 %
+  - With N = 20 the biggest drop between two epochs is now 0.4 points. Top 1 at epoch 20 differs from epoch 15 by at most 0.4 points, and within these epochs it moves by at most 0.6 points, so 20 epochs are enough.
+  - Without the schedule the means were almost the same (19.9 %, 34.9 %, 55.7 %, 70.0 % Top 1). So the schedule makes the training stable, but does not change the level.
+  - Time: about 2 hours for all 12 runs. The validation takes about 7 s after every epoch, so about 2.5 min per run, no matter how big N is.
+- Alternatives: Keep the old runs and only write down the risk. This would have been faster, but the drop was bigger than the difference between the losses we want to measure.
+- Risks:
+  - The GPU does not give exactly the same numbers for the same seed. Two runs with seed 42 and N = 2 differed by about 1 point. So the same seed means the same photos and the same order, but not the same result.
+  - The seeds only change the training, not the photos we pick.
+  - The old runs without the schedule are only kept in the container, not in the repo.
+- Who: Meriem
