@@ -68,6 +68,14 @@ Demo gallery with the ready-made face model, then the top 3 look-alikes for one 
 python -m whoisit.data.preprocess --metadata data/lfw_meta.csv --out-dir data/aligned/lfw
 python -m whoisit.gallery --aligned-dir data/aligned/lfw --out data/gallery/pretrained.npz
 python -m whoisit.gallery --out data/gallery/pretrained.npz --photo me.jpg
+python app/app.py
+```
+
+With our own trained model (ArcFace, N = 20, seed 42): copy its checkpoint from the container to `results/runs/arcface_n20_seed42_ep20/checkpoints/model.pt`, then:
+
+```
+python -m whoisit.gallery --model ours
+python app/app.py --model ours
 ```
 
 Add `--device cuda` to use the GPU. The split by person is made with `python -m whoisit.data.splits`.

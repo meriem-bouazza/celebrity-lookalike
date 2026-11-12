@@ -3,6 +3,7 @@
 Part 1 (fallback): the embeddings come from a ready-made face model (facenet-pytorch
 InceptionResnetV1, trained on VGGFace2), so we have a demo even if our own training fails.
 Part 2: one photo in, the 3 most similar gallery people out.
+Part 3: the same with our own trained model (``--model ours``, checkpoint ``OURS_CHECKPOINT``).
 
 Input is the output folder of ``whoisit.data.preprocess`` (aligned 112 x 112 crops + meta.csv).
 Output is one ``.npz`` file with ``embeddings`` (N, 512), ``identities`` (N,) and ``image_paths`` (N,).
@@ -11,6 +12,7 @@ Usage:
     python -m whoisit.data.preprocess --metadata data/lfw_meta.csv --out-dir data/aligned/lfw
     python -m whoisit.gallery --aligned-dir data/aligned/lfw --out data/gallery/pretrained.npz
     python -m whoisit.gallery --out data/gallery/pretrained.npz --photo me.jpg
+    python -m whoisit.gallery --model ours          # gallery with our model -> data/gallery/ours.npz
 
 The first run downloads the VGGFace2 weights (~110 MB) into the torch cache.
 """
@@ -25,10 +27,14 @@ import torch
 from facenet_pytorch import InceptionResnetV1
 
 from whoisit.data.align import detect_and_align, load_image
+from whoisit.data.images import MEAN, STD
 from whoisit.evaluate import top_k_accuracy
+from whoisit.models.backbone import Backbone
 
 MIN_PHOTOS, MAX_PHOTOS = 2, 5  # docs/decisions.md, "2026-10-29: Datasets"
 PRETRAINED_SIZE = 160  # InceptionResnetV1 was trained on 160 x 160 crops
+# shortcut: one fixed run (issue #50); the checkpoint is only in the container, copy it to the same path to use it
+OURS_CHECKPOINT = Path("results/runs/arcface_n20_seed42_ep20/checkpoints/model.pt")
 
 
 def select_gallery(meta_rows: list[dict], min_photos: int = MIN_PHOTOS,
@@ -57,19 +63,44 @@ def embed_pretrained(model: torch.nn.Module, faces: np.ndarray, device: str = "c
     x = torch.nn.functional.interpolate(x, size=PRETRAINED_SIZE, mode="bilinear", align_corners=False)
     return model((x - 127.5) / 128.0).cpu().numpy()  # same scaling as facenet's fixed_image_standardization
 
+def load_ours(device: str = "cpu", checkpoint: Path | None = OURS_CHECKPOINT) -> torch.nn.Module:
+    """Our trained ResNet-18 from ``checkpoint`` (None = untrained, for tests)."""
+    model = Backbone(pretrained=False)
+    if checkpoint is not None:
+        model.load_state_dict(torch.load(checkpoint, map_location=device))
+    return model.eval().to(device)
 
-def build_gallery(aligned_dir: Path, out: Path, device: str = "cpu", batch_size: int = 128) -> dict:
+
+@torch.no_grad()
+def embed_ours(model: torch.nn.Module, faces: np.ndarray, device: str = "cpu") -> np.ndarray:
+    """Turn aligned faces (N, 112, 112, 3) uint8 into embeddings (N, 512) with norm 1, scaled as in training."""
+    x = torch.from_numpy(faces).permute(0, 3, 1, 2).float().div(255).to(device)
+    x = (x - torch.tensor(MEAN, device=device)[:, None, None]) / torch.tensor(STD, device=device)[:, None, None]
+    return torch.nn.functional.normalize(model(x), dim=1).cpu().numpy()
+
+
+# The one setting that switches the model: name -> (load, embed). The gallery is data/gallery/<name>.npz.
+MODELS = {"pretrained": (load_pretrained, embed_pretrained), "ours": (load_ours, embed_ours)}
+
+
+def gallery_path(model_name: str) -> Path:
+    return Path(f"data/gallery/{model_name}.npz")
+
+
+def build_gallery(aligned_dir: Path, out: Path, device: str = "cpu", batch_size: int = 128,
+                  model_name: str = "pretrained") -> dict:
     """Select the gallery photos from ``aligned_dir/meta.csv``, embed them and save them to ``out``."""
     with open(aligned_dir / "meta.csv", newline="", encoding="utf-8") as f:
         rows = select_gallery(list(csv.DictReader(f)))
     if not rows:
         raise ValueError(f"no person with {MIN_PHOTOS}+ photos in {aligned_dir / 'meta.csv'}")
 
-    model = load_pretrained(device)
+    load, embed = MODELS[model_name]
+    model = load(device)
     parts = []
     for start in range(0, len(rows), batch_size):
         faces = np.stack([load_image(aligned_dir / r["image_path"]) for r in rows[start:start + batch_size]])
-        parts.append(embed_pretrained(model, faces, device))
+        parts.append(embed(model, faces, device))
     embeddings = np.concatenate(parts)
     identities = np.array([r["identity"] for r in rows])
 
@@ -94,30 +125,35 @@ def top_people(query: np.ndarray, embeddings: np.ndarray, identities: np.ndarray
     return sorted(best.values(), key=lambda item: -item[1])[:k]
 
 
-def look_up(photo: Path, gallery: Path, device: str = "cpu", k: int = 3) -> list[tuple[str, float, int]]:
+def look_up(photo: Path, gallery: Path, device: str = "cpu", k: int = 3,
+            model_name: str = "pretrained") -> list[tuple[str, float, int]]:
     """Detect and align the face in ``photo`` and return its k most similar gallery people."""
     face = detect_and_align(load_image(photo), device=device)
     if face is None:
         raise ValueError(f"no face found in {photo}")
     data = np.load(gallery)
-    query = embed_pretrained(load_pretrained(device), face[None], device)[0]
+    load, embed = MODELS[model_name]
+    query = embed(load(device), face[None], device)[0]
     return top_people(query, data["embeddings"], data["identities"], k)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build the demo gallery with the ready-made face model.")
+    parser = argparse.ArgumentParser(description="Build the demo gallery with the ready-made or our face model.")
     parser.add_argument("--aligned-dir", type=Path, default=Path("data/aligned/lfw"), help="output of preprocess")
-    parser.add_argument("--out", type=Path, default=Path("data/gallery/pretrained.npz"))
+    parser.add_argument("--model", choices=sorted(MODELS), default="pretrained")
+    parser.add_argument("--out", type=Path, help="default: data/gallery/<model>.npz")
     parser.add_argument("--device", default="cpu", help="cpu or cuda")
     parser.add_argument("--photo", type=Path, help="look up this photo in the gallery --out instead of building it")
     args = parser.parse_args()
+    args.out = args.out or gallery_path(args.model)
 
     if args.photo:
-        for rank, (identity, score, _) in enumerate(look_up(args.photo, args.out, args.device), 1):
+        matches = look_up(args.photo, args.out, args.device, model_name=args.model)
+        for rank, (identity, score, _) in enumerate(matches, 1):
             print(f"{rank}. {identity.replace('_', ' ')}  (similarity {score:.2f})")
         return
 
-    stats = build_gallery(args.aligned_dir, args.out, args.device)
+    stats = build_gallery(args.aligned_dir, args.out, args.device, model_name=args.model)
     print(f"gallery: {stats['people']} people, {stats['photos']} photos -> {args.out}")
     print(f"top 1: {stats[1]:.2%}  top 5: {stats[5]:.2%}  (each photo against the rest of the gallery)")
 

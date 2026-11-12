@@ -6,6 +6,7 @@ the photo is only kept in memory, and Gradio's file cache is cleared every 5 min
 Usage (the gallery must exist, see README "Run"):
     python app/app.py
     python app/app.py --model pretrained --device cuda
+    python app/app.py --model ours          # our trained model, needs data/gallery/ours.npz
 Then open http://127.0.0.1:7860 in the browser.
 """
 
@@ -20,13 +21,11 @@ import gradio as gr
 import numpy as np
 
 from whoisit.data.align import detect_and_align, load_image
-from whoisit.gallery import embed_pretrained, load_pretrained, top_people
+from whoisit import gallery as galleries
+from whoisit.gallery import top_people
 
 # The one setting that switches the model: name -> (load, embed, gallery built with the same model).
-# shortcut: only the ready-made model so far; add ours here once training saves a model (#20, #23).
-MODELS = {
-    "pretrained": (load_pretrained, embed_pretrained, Path("data/gallery/pretrained.npz")),
-}
+MODELS = {name: (load, embed, galleries.gallery_path(name)) for name, (load, embed) in galleries.MODELS.items()}
 
 
 def make_match(model_name: str = "pretrained", device: str = "cpu",
