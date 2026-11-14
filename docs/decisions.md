@@ -262,3 +262,23 @@ Template:
   - The seeds only change the training, not the photos we pick.
   - The old runs without the schedule are only kept in the container, not in the repo.
 - Who: Meriem
+
+## 2026-11-14: ArcFace runs
+
+- Decision: We ran the 12 ArcFace runs with the same settings as the cross-entropy runs (20 epochs, cosine schedule, seeds 42, 43 and 44, margin 0.5, scale 64). The results are in `results/runs/arcface_n<N>_seed<S>_ep20/result.json`, the table in `results/tables/summary.csv`. The checkpoints stay in the container.
+- Why: Same settings for both losses, so only the loss is different (see "Add the ArcFace loss").
+- Numbers (validation people, last epoch, mean of 3 seeds, spread in brackets):
+  - N = 2: Top 1 18.7 % (18.5 to 18.9), Top 5 33.2 %. Cross-entropy: 19.2 %.
+  - N = 5: Top 1 32.5 % (31.5 to 33.1), Top 5 51.1 %. Cross-entropy: 34.8 %.
+  - N = 10: Top 1 54.1 % (53.0 to 55.2), Top 5 72.8 %. Cross-entropy: 55.7 %.
+  - N = 20: Top 1 70.7 % (70.5 to 70.8), Top 5 84.9 %. Cross-entropy: 70.1 %.
+  - So ArcFace is a bit worse than cross-entropy for N = 2, 5 and 10, and about the same for N = 20. Only for N = 5 the spreads of the two losses do not overlap.
+  - ArcFace reaches its best epoch early (epoch 8 to 17) and then goes down a bit. Best epoch minus last epoch, mean of 3 seeds: 0.6 points (N = 2), 0.8 (N = 5), 1.4 (N = 10), 2.3 (N = 20). For cross-entropy this is at most 0.5 points. Between epochs 15 and 20, Top 1 moves by at most 0.8 points, so the end of the training is calm.
+  - The training loss at epoch 20 is 0.16 to 0.52 for ArcFace (cross-entropy: about 0.004 for N = 20).
+  - Time: like cross-entropy, about 2 hours for all 12 runs (training per run: N = 2 about 1.5 min, N = 5 about 3.5 min, N = 10 about 7 min, N = 20 about 15 min, plus about 2.5 min validation).
+- Alternatives: Use the best epoch for ArcFace. This would make ArcFace better for N = 20 (72.9 %), but we would pick the epoch with the validation people, and we decided that the last epoch counts.
+- Risks:
+  - Margin and scale are not tuned. The drop after the best epoch could mean that ArcFace overfits with these settings.
+  - These are validation numbers. The final numbers come from the test people (#46).
+  - The first comparison with the hypothesis comes in #51.
+- Who: Melina
