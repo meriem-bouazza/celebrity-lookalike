@@ -1,6 +1,10 @@
 import numpy as np
+import torch
+from PIL import Image
 
-from whoisit.gallery import embed_pretrained, load_pretrained, select_gallery, top_people
+from whoisit.data.images import make_transform
+from whoisit.gallery import (embed_ours, embed_pretrained, load_ours, load_pretrained, select_gallery,
+                             top_people)
 
 
 def rows(counts):
@@ -33,3 +37,14 @@ def test_top_people_scores_each_person_by_best_photo():
     identities = np.array(["a", "a", "b", "c"])
     query = np.array([0.6, 0.0, 0.8, 0.0])  # b's photo is the closest, then a's first photo
     assert top_people(query, embeddings, identities, k=2) == [("b", 0.8, 2), ("a", 0.6, 0)]
+
+
+def test_embed_ours_scales_faces_like_training():
+    # the demo must feed our model the same numbers as the validation during training
+    torch.manual_seed(0)
+    model = load_ours(checkpoint=None)
+    faces = np.random.default_rng(0).integers(0, 256, (2, 112, 112, 3), dtype=np.uint8)
+    with torch.no_grad():
+        expected = model(torch.stack([make_transform(train=False)(Image.fromarray(f)) for f in faces]))
+    expected = torch.nn.functional.normalize(expected, dim=1).numpy()
+    np.testing.assert_allclose(embed_ours(model, faces), expected, atol=1e-5)
