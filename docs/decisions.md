@@ -305,3 +305,32 @@ Template:
   - The test numbers are lower than the validation numbers (for example 63.8 % instead of 70.1 % for cross-entropy with N = 20), because they come from other people.
   - Only 3 seeds, and the GPU does not give exactly the same numbers for the same seed.
 - Who: Meriem
+
+## 2026-11-16: Attributes for the error analysis
+
+- Decision: For the error analysis we look at 5 CelebA attributes: Eyeglasses, Wearing_Hat, Blurry, Smiling and Male.
+- Why:
+  - Eyeglasses and Wearing_Hat hide parts of the face.
+  - Blurry stands for bad photo quality. CelebA has no attribute for light or pose, so this is the closest one.
+  - Smiling changes the face. It splits the test photos almost in half.
+  - Male lets us check if the model works equally well for both groups.
+- Numbers (test people, 1000 people and 9964 photos, from `results/tables/test_attributes.csv`, made with `python -m whoisit.attributes`):
+
+  | attribute | photos | percent | people with at least 2 such photos |
+  |---|---|---|---|
+  | Eyeglasses | 570 | 5.7 % | 93 |
+  | Wearing_Hat | 436 | 4.4 % | 83 |
+  | Blurry | 425 | 4.3 % | 103 |
+  | Smiling | 4934 | 49.5 % | 864 |
+  | Male | 3852 | 38.7 % | 391 |
+
+  Every group has more than 80 people with at least 2 photos, so we can compute Top 1 for it.
+- Alternatives:
+  - Attractive or Heavy_Makeup: these are opinions of the people who labeled CelebA, not facts about the photo.
+  - Pale_Skin: the only attribute about skin color, and much too rough for a fair statement. We name this as a limit in the paper instead.
+  - Young: 81 % of the photos are labeled young, and the label is a rough guess.
+- Risks:
+  - The CelebA attributes were set by people and are not always right.
+  - The groups with glasses, hats and blurry photos are small (about 5 % of the photos), so their numbers will jump more.
+  - Several attributes can come together (for example a hat and glasses). We look at each attribute alone.
+- Who: Meriem
