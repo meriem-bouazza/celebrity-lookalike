@@ -334,3 +334,22 @@ Template:
   - The groups with glasses, hats and blurry photos are small (about 5 % of the photos), so their numbers will jump more.
   - Several attributes can come together (for example a hat and glasses). We look at each attribute alone.
 - Who: Meriem
+
+## 2026-11-16: Does the hypothesis hold?
+
+- Decision: The hypothesis is not supported. With 2 to 20 photos per person and the same settings for both losses, ArcFace was not better than cross-entropy, and the gap does not get smaller with more photos. This is our first result for the paper and the poster.
+- Why (test people, ArcFace minus cross-entropy, from `results/tables/summary.csv`):
+  - Top 1: +0.5 (N = 2), -1.7 (N = 5), +0.6 (N = 10), +0.6 (N = 20) points.
+  - Top 5: +0.1, -4.0, -1.6, -0.4 points.
+  - Only one difference is bigger than the spread over the 3 seeds: Top 5 with N = 5, where cross-entropy is better. All other differences are about as big as the noise. On the validation people some of the small differences point the other way.
+- Reasons we can show with our numbers:
+  - The settings were chosen with cross-entropy (learning rate, schedule, 20 epochs). ArcFace just got the same settings.
+  - ArcFace reaches its best validation Top 1 earlier (with N = 20 around epoch 9, cross-entropy around epoch 19) and loses 0.6 to 2.3 points until epoch 20. Cross-entropy loses only 0.1 to 0.5 points. Because the last epoch counts, this costs ArcFace more.
+  - The training loss of ArcFace stays higher (0.16 to 0.49 against 0.004 to 0.12 at epoch 20).
+- Reasons we can only guess:
+  - Margin 0.5 and scale 64 come from the ArcFace paper, which used far more people and photos. They may be too strict for 1983 people with 2 to 20 photos.
+  - With fewer people there are fewer classes to push apart.
+- What we do next: The first comparison gave ArcFace the settings we had chosen with cross-entropy. To make the comparison fairer, ArcFace gets its own settings, chosen only on the validation people (new issues). The result above stays our first result and stays in the paper.
+- What we write: In the paper we say clearly that the hypothesis was not supported with the same settings for both losses, show the numbers with the spread over the seeds, and name the reasons above, split into shown and guessed. The second result (ArcFace with its own settings) comes as an extra section.
+- Risks: Only 3 seeds, and the GPU does not give exactly the same numbers for the same seed (about 1 point). Small differences can be chance.
+- Who: Meriem, Melina
