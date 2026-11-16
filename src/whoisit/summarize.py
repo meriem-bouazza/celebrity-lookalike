@@ -1,4 +1,6 @@
-"""Put the results of all finished runs in one table, one row per loss and N.
+"""Put the results of all finished runs in one table, one row per split, loss and N.
+
+The val rows come from result.json, the test rows from test.json (written by final_eval.py).
 
 Example: python -m whoisit.summarize
 """
@@ -14,6 +16,7 @@ from whoisit.data.dataset import N_VALUES
 # not imported from train.py, so this module does not need torch
 RUNS_DIR = Path("results/runs")
 RESULT_FILE = "result.json"
+TEST_FILE = "test.json"
 OUT_FILE = Path("results/tables/summary.csv")
 COLUMNS = ["split", "loss", "n", "seeds", "top1_mean", "top1_min", "top1_max",
            "top5_mean", "top5_min", "top5_max"]
@@ -35,10 +38,22 @@ def load_runs(runs_dir):
             for path in sorted(runs_dir.glob(f"*/{RESULT_FILE}"))}
 
 
+def load_test_runs(runs_dir, runs):
+    # only runs with a result.json; a run without test.json just has no test row
+    test_runs = {}
+    for name, run in runs.items():
+        path = runs_dir / name / TEST_FILE
+        if path.exists():
+            test = json.loads(path.read_text(encoding="utf-8"))
+            # keep the options of result.json, but take the numbers from test.json
+            test_runs[name] = {**run, "test": test["test"], "final": test["final"]}
+    return test_runs
+
+
 def settings(run):
     # everything that must be the same in one row, so all but the seed
     options = {key: value for key, value in run["options"].items() if key != "seed"}
-    return {**options, "train": run.get("train"), "val": run.get("val")}
+    return {**options, "train": run.get("train"), "val": run.get("val"), "test": run.get("test")}
 
 
 def shared_settings(run):
@@ -48,6 +63,8 @@ def shared_settings(run):
     shared["train"] = {key: value for key, value in run.get("train", {}).items()
                        if key != "photos"}
     shared["val"] = run.get("val")
+    # only test runs have this block, so all test rows must use the same test photos
+    shared["test"] = run.get("test")
     return shared
 
 
@@ -81,8 +98,8 @@ def percent(value):
     return f"{value * 100:.2f}"
 
 
-def make_row(loss, n, runs):
-    row = {"split": "val", "loss": loss, "n": n, "seeds": len(runs)}
+def make_row(split, loss, n, runs):
+    row = {"split": split, "loss": loss, "n": n, "seeds": len(runs)}
     for metric in ["top1", "top5"]:
         # the mean comes from the exact numbers, we round only at the end
         values = [run["final"][metric] for run in runs.values()]
@@ -92,7 +109,7 @@ def make_row(loss, n, runs):
     return row
 
 
-def summarize(runs):
+def summarize_split(split, runs):
     check_n_values(runs)
 
     groups = defaultdict(dict)
@@ -104,18 +121,29 @@ def summarize(runs):
     rows = []
     # n is a number in result.json, so 2 comes before 10
     for (loss, n), group in sorted(groups.items()):
-        check_same(group, settings, f"runs with loss {loss} and n {n} differ in more than the seed")
-        rows.append(make_row(loss, n, group))
+        check_same(group, settings,
+                   f"{split} runs with loss {loss} and n {n} differ in more than the seed")
+        rows.append(make_row(split, loss, n, group))
 
-    check_same(runs, shared_settings, "runs in the table differ")
+    check_same(runs, shared_settings, f"{split} runs in the table differ")
     for loss, group in by_loss.items():
-        check_same(group, loss_settings, f"runs with loss {loss} differ")
+        check_same(group, loss_settings, f"{split} runs with loss {loss} differ")
+    return rows
+
+
+def summarize(runs, test_runs=None):
+    # val first and test after it, so the val rows stay the same when test rows come in
+    rows = summarize_split("val", runs)
+    if test_runs:
+        rows += summarize_split("test", test_runs)
     return rows
 
 
 def seed_warnings(rows):
+    # the val warning stays as before, the test warning says that it is about test
     return [f"warning: {row['loss']} n={row['n']} has only {row['seeds']} "
             f"seed{'' if row['seeds'] == 1 else 's'}"
+            f"{'' if row['split'] == 'val' else ' in ' + row['split']}"
             for row in rows if row["seeds"] < MIN_SEEDS]
 
 
@@ -141,7 +169,7 @@ def main(argv=None):
     if not runs:
         raise SystemExit(f"error: no {RESULT_FILE} found in {args.runs_dir}")
     try:
-        rows = summarize(runs)
+        rows = summarize(runs, load_test_runs(args.runs_dir, runs))
     except ValueError as error:
         raise SystemExit(f"error: {error}")
     save_csv(rows, args.out)

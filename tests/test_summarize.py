@@ -1,4 +1,4 @@
-"""Tests for the results table, with small made-up result.json files."""
+"""Tests for the results table, with small made-up result.json and test.json files."""
 import csv
 import json
 import subprocess
@@ -18,6 +18,13 @@ def save_run(runs_dir, loss="ce", n=5, seed=42, epochs=20, top1=0.5, top5=0.7,
     result = {"options": options, "train": train or {"people": 10, "photos": 10 * n},
               "val": val or {"people": 2, "photos": 8}, "final": {"top1": top1, "top5": top5}}
     (folder / "result.json").write_text(json.dumps(result), encoding="utf-8")
+    return folder
+
+
+def save_test(folder, top1=0.4, top5=0.6, test=None):
+    result = {"checkpoint": "checkpoints/model.pt", "test": test or {"people": 3, "photos": 9},
+              "final": {"top1": top1, "top5": top5}}
+    (folder / "test.json").write_text(json.dumps(result), encoding="utf-8")
 
 
 def run_main(tmp_path):
@@ -213,6 +220,92 @@ def test_too_few_seeds_give_a_warning_and_the_table(tmp_path, capsys):
     assert "warning: arcface n=5 has only 2 seeds" in lines
     assert "warning: arcface n=2 has only 1 seed" in lines
     assert not any("n=10" in line for line in lines)
+
+
+def test_test_rows_mean_min_max(tmp_path):
+    runs = tmp_path / "runs"
+    for seed, top1, top5 in [(42, 0.2561, 0.4), (43, 0.2, 0.31), (44, 0.3, 0.55)]:
+        save_test(save_run(runs, seed=seed, top1=0.5, top5=0.7), top1=top1, top5=top5)
+
+    rows = run_main(tmp_path)
+    assert [row["split"] for row in rows] == ["val", "test"]
+    assert rows[1] == {
+        "split": "test", "loss": "ce", "n": "5", "seeds": "3",
+        "top1_mean": "25.20", "top1_min": "20.00", "top1_max": "30.00",
+        "top5_mean": "42.00", "top5_min": "31.00", "top5_max": "55.00",
+    }
+    # the val row still comes from result.json
+    assert rows[0]["top1_mean"] == "50.00"
+
+
+def test_sorted_by_split_then_loss_then_n(tmp_path):
+    runs = tmp_path / "runs"
+    for loss, n in [("ce", 10), ("ce", 2), ("arcface", 20), ("arcface", 5)]:
+        options = {"margin": 0.5, "scale": 64.0} if loss == "arcface" else None
+        save_test(save_run(runs, loss=loss, n=n, extra_options=options))
+
+    rows = run_main(tmp_path)
+    assert [(row["split"], row["loss"], row["n"]) for row in rows] == [
+        ("val", "arcface", "5"), ("val", "arcface", "20"), ("val", "ce", "2"), ("val", "ce", "10"),
+        ("test", "arcface", "5"), ("test", "arcface", "20"), ("test", "ce", "2"), ("test", "ce", "10"),
+    ]
+
+
+def test_val_rows_stay_the_same_with_test_rows(tmp_path):
+    runs = tmp_path / "runs"
+    folders = [save_run(runs, n=n, seed=seed, top1=seed / 100)
+               for n in [2, 5] for seed in [42, 43, 44]]
+    before = tmp_path / "before.csv"
+    summarize.main(["--runs-dir", str(runs), "--out", str(before)])
+
+    for folder in folders:
+        save_test(folder)
+    rows = run_main(tmp_path)
+    val_lines = (tmp_path / "tables" / "summary.csv").read_text(encoding="utf-8").splitlines()[:3]
+    assert val_lines == before.read_text(encoding="utf-8").splitlines()
+    assert [row["split"] for row in rows] == ["val", "val", "test", "test"]
+
+
+def test_no_test_json_gives_no_test_rows(tmp_path):
+    save_run(tmp_path / "runs")
+    assert [row["split"] for row in run_main(tmp_path)] == ["val"]
+
+
+def test_run_without_test_json_has_only_a_val_row(tmp_path, capsys):
+    runs = tmp_path / "runs"
+    save_test(save_run(runs, seed=42), top1=0.2)
+    save_test(save_run(runs, seed=43), top1=0.4)
+    save_run(runs, seed=44)
+
+    rows = run_main(tmp_path)
+    assert [(row["split"], row["seeds"]) for row in rows] == [("val", "3"), ("test", "2")]
+    assert rows[1]["top1_mean"] == "30.00"
+    lines = capsys.readouterr().out.splitlines()
+    assert "warning: ce n=5 has only 2 seeds in test" in lines
+    assert not any(line.startswith("warning") and "in test" not in line for line in lines)
+
+
+def test_test_json_without_result_json_is_skipped(tmp_path):
+    runs = tmp_path / "runs"
+    save_run(runs, seed=42)
+    unfinished = runs / "ce_n5_seed43_ep20"
+    unfinished.mkdir()
+    save_test(unfinished)
+
+    assert [row["split"] for row in run_main(tmp_path)] == ["val"]
+
+
+@pytest.mark.parametrize("same_row", [True, False])
+def test_different_test_block_gives_an_error(tmp_path, same_row):
+    runs = tmp_path / "runs"
+    save_test(save_run(runs, n=5, seed=42))
+    other = save_run(runs, n=5 if same_row else 10, seed=43)
+    save_test(other, test={"people": 3, "photos": 10})
+
+    with pytest.raises(SystemExit, match="test") as error:
+        run_main(tmp_path)
+    assert "photos': 10" in str(error.value)
+    assert not (tmp_path / "tables" / "summary.csv").exists()
 
 
 def test_no_results_give_an_error(tmp_path):
