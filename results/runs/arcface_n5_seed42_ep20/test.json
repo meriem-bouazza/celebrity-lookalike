@@ -1,0 +1,11 @@
+{
+  "checkpoint": "checkpoints/model.pt",
+  "test": {
+    "people": 1000,
+    "photos": 9964
+  },
+  "final": {
+    "top1": 0.2869329586511441,
+    "top5": 0.44078683259735046
+  }
+}

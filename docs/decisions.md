@@ -282,3 +282,26 @@ Template:
   - These are validation numbers. The final numbers come from the test people (#46).
   - The first comparison with the hypothesis comes in #51.
 - Who: Melina
+
+## 2026-11-16: Final numbers on the test people
+
+- Decision: The final numbers come from the test people (#46). We evaluated each of the 24 runs once, with the model from the last epoch. After this we do not change the training anymore (no new epochs, schedule, margin or scale).
+- Why: We used the validation people to pick the epochs and the schedule, so their numbers are a bit too good. The test people were never used for any choice.
+- Numbers (test people, mean of 3 seeds, spread of Top 1 in brackets):
+
+  | N | CE Top 1 | ArcFace Top 1 | CE Top 5 | ArcFace Top 5 |
+  |---|---|---|---|---|
+  | 2 | 16.0 % (15.7 to 16.2) | 16.6 % (16.4 to 16.8) | 28.1 % | 28.2 % |
+  | 5 | 30.0 % (28.7 to 31.3) | 28.3 % (27.2 to 29.1) | 47.8 % | 43.8 % |
+  | 10 | 48.5 % (47.8 to 49.8) | 49.1 % (48.7 to 49.4) | 68.4 % | 66.7 % |
+  | 20 | 63.8 % (63.1 to 64.6) | 64.4 % (64.1 to 64.7) | 80.2 % | 79.8 % |
+
+  - Same test photos as the baseline: 1000 people, 9964 photos (`data/aligned/celeba_test`). The baseline without training has Top 1 12.2 % and Top 5 22.6 %.
+  - The numbers are in `results/runs/<run>/test.json` and in `results/tables/summary.csv` (split "test").
+- Result: The hypothesis is not supported. ArcFace is not clearly better with few photos, and the gap does not get smaller with more photos. In Top 1 most differences are smaller than the spread over the seeds. Only with N = 2 all ArcFace seeds are above all cross-entropy seeds, but only by about 0.6 points. In Top 5 ArcFace is worse with N = 5 and N = 10.
+- Alternatives: Tune margin and scale and test again. We do not do this, because then the test numbers would no longer be clean.
+- Risks:
+  - Margin and scale were not tuned, so a better ArcFace setting may exist.
+  - The test numbers are lower than the validation numbers (for example 63.8 % instead of 70.1 % for cross-entropy with N = 20), because they come from other people.
+  - Only 3 seeds, and the GPU does not give exactly the same numbers for the same seed.
+- Who: Meriem
