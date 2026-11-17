@@ -54,13 +54,17 @@ def load_test_sources(aligned_dir):
     return photos
 
 
-def count_attributes(photos, attributes):
+def photo_attributes(photos, attributes):
+    # one row per test photo (same order as photos), True if the photo has the attribute
     missing = sorted(set(photos["source"]) - set(attributes.index))
     if missing:
         raise ValueError(f"{len(missing)} test photos are not in the attribute file, "
                          f"for example: {', '.join(missing[:5])}")
-    # one row per test photo, True if the photo has the attribute
-    has = attributes.loc[photos["source"]].reset_index(drop=True)
+    return attributes.loc[photos["source"]].reset_index(drop=True)
+
+
+def count_attributes(photos, attributes):
+    has = photo_attributes(photos, attributes)
     per_person = has.groupby(photos["person"].to_numpy()).sum()
     table = pd.DataFrame({
         "attribute": has.columns,
