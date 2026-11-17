@@ -124,6 +124,19 @@ def test_missing_checkpoint_gives_an_error_after_the_other_runs(setup):
     assert not (setup / "runs" / "ce_n5_seed43_ep20" / "test.json").exists()
 
 
+def test_other_runs_dir_writes_test_json_only_there(setup):
+    old = make_run(setup / "results/runs", "arcface_n2_seed42_ep20")
+    new = make_run(setup / "results/tuning/ep20_m0.3", "arcface_n2_seed42_ep20")
+    old_files = sorted(path.name for path in old.rglob("*"))
+
+    final_eval.main(["--runs-dir", str(setup / "results/tuning/ep20_m0.3"),
+                     "--aligned-dir", str(setup / "aligned"), "--batch-size", "2"])
+
+    assert (new / "test.json").exists()
+    assert sorted(path.name for path in old.rglob("*")) == old_files
+    assert not (old / "test.json").exists()
+
+
 def test_no_finished_runs_give_an_error(setup):
     (setup / "runs").mkdir()
     with pytest.raises(SystemExit, match="no result.json"):
