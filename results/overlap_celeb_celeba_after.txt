@@ -1,0 +1,6 @@
+threshold: cosine similarity of the person centroids >= 0.8
+check on LFW: 0 of 7021 pairs of different names reach it, 58.0% of people with 4+ photos are found again (two halves)
+CelebA training people: 1999 (5 photos each), LFW gallery people: 119
+likely matches: 0 pairs, 0 CelebA people
+
+celeba_id,lfw_name,similarity

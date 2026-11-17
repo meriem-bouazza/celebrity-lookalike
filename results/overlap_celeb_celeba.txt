@@ -1,0 +1,26 @@
+threshold: cosine similarity of the person centroids >= 0.8
+check on LFW: 0 of 9591 pairs of different names reach it, 57.6% of people with 4+ photos are found again (two halves)
+CelebA training people: 1999 (5 photos each), LFW gallery people: 139
+likely matches: 20 pairs, 20 CelebA people
+
+celeba_id,lfw_name,similarity
+7656,Penn_Badgley,0.952
+9923,Wentworth_Miller,0.933
+8169,Robert_Downey_Jr,0.927
+5965,Logan_Lerman,0.920
+4920,Josh_Radnor,0.916
+7153,Natalie_Portman,0.894
+1871,Chris_Pratt,0.888
+4505,Jeremy_Renner,0.883
+4334,Jason_Momoa,0.880
+408,Amber_Heard,0.879
+2639,Dominic_Purcell,0.877
+3899,Hugh_Jackman,0.877
+10112,Zac_Efron,0.863
+8548,Sarah_Wayne_Callies,0.858
+7141,Natalie_Dormer,0.852
+1849,Chris_Evans,0.832
+9517,Tom_Hardy,0.820
+6428,Mark_Ruffalo,0.820
+9319,Taylor_Swift,0.808
+6912,Miley_Cyrus,0.801

@@ -26,7 +26,7 @@ There is no single correct answer for "looks similar", so we measure whether the
 No photos are stored in this repository.
 
 - Training and evaluation: CelebA (aligned images, `identity_CelebA.txt`, `list_attr_celeba.txt`)
-- Demo gallery: LFW (people with at least 2 images)
+- Demo gallery: LFW (people with at least 2 images), and a new gallery with well-known celebrities from the Pins Face Recognition dataset (Kaggle) plus 34 LFW people (see "Run")
 
 Put the CelebA files here:
 
@@ -42,7 +42,7 @@ LFW is downloaded by a script. It lands in `data/sklearn/lfw_home/lfw_funneled/`
 python scripts/download_lfw.py
 ```
 
-Dataset statistics are in `results/`. We may never show CelebA photos outside our team. The licenses and what they allow are in `docs/decisions.md`, entry "2026-11-03: Dataset licenses".
+Dataset statistics are in `results/`. We may never show CelebA photos outside our team, and no LFW or Pins photos go into Git. The licenses and what they allow are in `docs/decisions.md`, entries "2026-11-03: Dataset licenses" and "2026-11-17: New demo gallery with well-known celebrities".
 
 ## Setup
 
@@ -80,15 +80,35 @@ python app/app.py
 
 The demo starts with the ready-made model. If `data/gallery/ours.npz` exists, a button switches to our model. The camera starts only after a click, the uploaded photo is deleted when the next photo comes in (at the latest after 10 minutes), and Gradio's run history in the browser is off. Without a webcam, click one of the example photos: LFW people with only one photo, so they are not in the gallery.
 
+New demo gallery with well-known celebrities: 85 people from the Pins Face Recognition dataset (Kaggle) and 34 well-known people from LFW, without people who are likely CelebA training people (see `docs/decisions.md`). The lists are in `configs/`.
+
+1. Download the Pins dataset from https://www.kaggle.com/datasets/hereisburak/pins-face-recognition and unzip it to `data/pins/`. LFW must be in `data/sklearn/lfw_home/lfw_funneled/` (`python scripts/download_lfw.py`).
+2. Pick the photos. This copies 10 photos per person to `data/celeb_raw/` and writes `data/celeb_raw/meta.csv`:
+
+```
+python -m whoisit.data.celeb_meta
+```
+
+3. Align the photos and build the galleries for both models (in the container, after uploading `data/celeb_raw`):
+
+```
+python -m whoisit.data.preprocess --metadata data/celeb_raw/meta.csv --image-root data/celeb_raw --out-dir data/aligned/celeb --device cuda
+python -m whoisit.gallery --aligned-dir data/aligned/celeb --out data/gallery/celeb/pretrained.npz --device cuda
+python -m whoisit.gallery --model ours --aligned-dir data/aligned/celeb --out data/gallery/celeb/ours.npz --device cuda
+```
+
+For now the app still uses the LFW gallery. It can use the new one when it gets options for the gallery folder (#76).
+
 Add `--device cuda` to use the GPU. The split by person is made with `python -m whoisit.data.splits`.
 
 ## Status
 
-Work in progress. Done: dataset statistics, split by person, face detection and alignment, evaluation (top-1 and top-5), and the fallback with a ready-made face model (top-1 95.9 % on the LFW gallery). Not done yet: training with cross-entropy and ArcFace, the baseline without training, and the Gradio demo.
+Work in progress. Done: dataset statistics, split by person, face detection and alignment, evaluation (top-1 and top-5), the baseline without training, training with cross-entropy and ArcFace (24 runs), the final numbers on the test people, an error analysis with CelebA attributes, and the Gradio demo with the ready-made and our own model. In progress: ArcFace with its own settings, the new celebrity gallery in the app, the poster and the paper. The results and all decisions are in `docs/decisions.md`.
 
 ## Limitations
 
-- CelebA and LFW are not representative (mostly celebrities and public figures, skewed in age, gender and skin tone).
+- CelebA and LFW are not representative (mostly celebrities and public figures, skewed in age, gender and skin tone). The Pins gallery has mostly young, western actors.
+- In our error analysis, photos of men are found again more often than photos of women (see `docs/decisions.md`, "Error analysis with the attributes").
 - The demo runs locally and does not store visitor photos.
 - Similarity scores are cosine similarities, not probabilities.
 
@@ -100,11 +120,11 @@ Work in progress. Done: dataset statistics, split by person, face detection and 
 4. Zhang, Zhang, Li, Qiao: Joint Face Detection and Alignment Using Multitask Cascaded Convolutional Networks. IEEE Signal Processing Letters 23(10), 2016.
 5. He, Zhang, Ren, Sun: Deep Residual Learning for Image Recognition. CVPR 2016.
 
-Libraries, pre-trained models and datasets are from others. The training setup, comparison, evaluation and demo are our own work.
+Libraries, pre-trained models and datasets are from others. The training setup, the comparison, the evaluation and the demo were designed by us (see "Use of AI tools").
 
 ## Use of AI tools
 
-We used Claude (Anthropic) as a helper: for the exposé text and layout, the project plan, drafts of the README, the decision log and the issues, the dataset counting scripts, and to understand error messages (for example when we set up the GPU container). We checked, ran and changed everything ourselves. This section lists what AI helped with, and we update it when that changes.
+We used Claude (Anthropic) and Claude Code as helpers, for texts (exposé, plan, README, decision log) and for writing and testing code. We planned every step ourselves, reviewed and ran all code, and made the decisions about the experiments, the settings and the interpretation of the results. This section lists what AI helped with, and we update it when that changes.
 
 ## License
 

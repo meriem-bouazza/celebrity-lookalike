@@ -403,3 +403,27 @@ Template:
   - The groups differ in more than one thing (other people, other photo types), so an attribute is not always the real cause.
   - We looked at the test people again, but only to describe fixed models, not to choose settings.
 - Who: Meriem
+
+## 2026-11-17: New demo gallery with well-known celebrities
+
+- Decision: The demo gets a new gallery with 119 well-known people: 85 from the Pins Face Recognition dataset and 34 from LFW. People who are likely CelebA training people are left out.
+- Why: Most people in the LFW gallery are politicians from about 2002 that visitors do not know. At the KI-Con the look-alikes should be people visitors know.
+- Numbers:
+  - Pins has 105 people and 17534 photos. We take the first 10 photos of each person. From LFW we chose 34 people that are still well known (`configs/celeb_gallery_lfw.txt`), with 10 photos each. Bill Gates, Keanu Reeves and Tom Cruise are in both, we take them from Pins.
+  - Some Pins names are wrong or old, so the names come from a table (`configs/celeb_gallery_pins.csv`).
+  - The overlap check (`scripts/overlap.py`, threshold 0.8, like for LFW) found 20 likely CelebA training people, all from Pins (`results/overlap_celeb_celeba.txt`). They are in `configs/celeb_gallery_exclude.txt` and are left out. After this the check finds 0 (`results/overlap_celeb_celeba_after.txt`).
+  - 1184 of 1190 photos were aligned (99.5 %). The gallery has 119 people with 5 photos each.
+  - Top 1 inside the gallery: ready-made model 94.8 %, our model 57.0 %. With the 20 training people it was 56.8 %, so they did not give our model a clear advantage.
+- Licenses:
+  - Pins (https://www.kaggle.com/datasets/hereisburak/pins-face-recognition): the Kaggle page says CC0 (public domain). The photos were collected from Pinterest, so the person who uploaded them probably does not own them, and CC0 does not cover the rights of the people in the photos. We treat the license as unclear, like LFW.
+  - So the same rules as for LFW: the demo runs only locally, the photos stay out of Git, and no Pins photos go on the poster or in the paper.
+- Alternatives:
+  - LFW only: the people are not known today.
+  - Small Kaggle sets with about 18 Hollywood stars: too few people, every visitor would look like one of 18.
+  - Photos from Wikimedia Commons: clear licenses, but much more work.
+- Risks:
+  - The overlap check finds only about 58 % of people again (two halves of their own photos), so some CelebA training people may still be in the gallery. This only matters for the demo with our model, not for the evaluation.
+  - Pins has mostly young, western actors. For many visitors there is no really similar person.
+  - The LFW photos are about 20 years old.
+  - The app still uses the LFW gallery until it gets options for the gallery folder (Melina, #76).
+- Who: Meriem
