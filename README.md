@@ -75,8 +75,10 @@ With our own trained model (ArcFace, N = 20, seed 42): copy its checkpoint from 
 
 ```
 python -m whoisit.gallery --model ours
-python app/app.py --model ours
+python app/app.py
 ```
+
+The demo starts with the ready-made model. If `data/gallery/ours.npz` exists, a button switches to our model. The camera starts only after a click, the uploaded photo is deleted when the next photo comes in (at the latest after 10 minutes), and Gradio's run history in the browser is off. Without a webcam, click one of the example photos: LFW people with only one photo, so they are not in the gallery.
 
 Add `--device cuda` to use the GPU. The split by person is made with `python -m whoisit.data.splits`.
 
