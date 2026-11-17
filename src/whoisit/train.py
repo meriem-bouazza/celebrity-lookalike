@@ -39,11 +39,13 @@ def parse_args(argv=None):
     parser.add_argument("--force", action="store_true", help="run again if the result already exists")
     parser.add_argument("--margin", type=float, default=ARCFACE_MARGIN, help="only for arcface")
     parser.add_argument("--scale", type=float, default=ARCFACE_SCALE, help="only for arcface")
+    # the folder name has no margin, so other settings need their own folder (e.g. results/tuning/ep10_m0.3)
+    parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
     return parser.parse_args(argv)
 
 
-def run_folder(loss, n, seed, epochs):
-    return RUNS_DIR / f"{loss}_n{n}_seed{seed}_ep{epochs}"
+def run_folder(loss, n, seed, epochs, runs_dir=RUNS_DIR):
+    return Path(runs_dir) / f"{loss}_n{n}_seed{seed}_ep{epochs}"
 
 
 @torch.no_grad()
@@ -65,7 +67,7 @@ def save_result(folder, result):
 
 def main(argv=None):
     args = parse_args(argv)
-    folder = run_folder(args.loss, args.n, args.seed, args.epochs)
+    folder = run_folder(args.loss, args.n, args.seed, args.epochs, args.runs_dir)
     if (folder / RESULT_FILE).exists() and not args.force:
         print(f"skip {folder}: {RESULT_FILE} exists (use --force to run again)")
         return

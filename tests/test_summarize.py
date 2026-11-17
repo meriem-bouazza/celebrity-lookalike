@@ -308,6 +308,30 @@ def test_different_test_block_gives_an_error(tmp_path, same_row):
     assert not (tmp_path / "tables" / "summary.csv").exists()
 
 
+def test_other_runs_dir_writes_only_the_new_csv(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    save_run(tmp_path / "results/runs", loss="arcface", n=2, extra_options={"margin": 0.5, "scale": 64.0})
+    summarize.main([])
+    summary = tmp_path / "results/tables/summary.csv"
+    before = summary.read_bytes()
+
+    # one setting in its own folder: only seed 42 with N = 2 and N = 20
+    tuning = tmp_path / "results/tuning/ep10_m0.3"
+    options = {"margin": 0.3, "scale": 64.0}
+    save_run(tuning, loss="arcface", n=2, epochs=10, top1=0.2, extra_options=options)
+    save_run(tuning, loss="arcface", n=20, epochs=10, top1=0.7, extra_options=options)
+    out = tmp_path / "results/tables/tuning_ep10_m0.3.csv"
+    summarize.main(["--runs-dir", str(tuning), "--out", str(out)])
+
+    assert summary.read_bytes() == before
+    assert sorted(path.name for path in summary.parent.iterdir()) == ["summary.csv", "tuning_ep10_m0.3.csv"]
+    with out.open(encoding="utf-8", newline="") as file:
+        rows = list(csv.DictReader(file))
+    assert [(row["loss"], row["n"], row["seeds"], row["top1_mean"]) for row in rows] == [
+        ("arcface", "2", "1", "20.00"), ("arcface", "20", "1", "70.00")]
+    assert "warning: arcface n=20 has only 1 seed" in capsys.readouterr().out
+
+
 def test_no_results_give_an_error(tmp_path):
     (tmp_path / "runs").mkdir()
     with pytest.raises(SystemExit, match="no result.json"):

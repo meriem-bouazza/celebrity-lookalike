@@ -70,6 +70,32 @@ def test_val_table_keeps_aligned_photos_and_drops_single_people(tmp_path):
 
 def test_run_folder_name():
     assert train.run_folder("ce", 5, 42, 20).as_posix() == "results/runs/ce_n5_seed42_ep20"
+    tuning = train.run_folder("arcface", 2, 42, 10, "results/tuning/ep10_m0.3")
+    assert tuning.as_posix() == "results/tuning/ep10_m0.3/arcface_n2_seed42_ep10"
+
+
+def snapshot(folder):
+    # every file below the folder with its bytes
+    return {path.relative_to(folder).as_posix(): path.read_bytes()
+            for path in sorted(folder.rglob("*")) if path.is_file()}
+
+
+def test_other_runs_dir_does_not_touch_results_runs(fake_repo):
+    # an old run with the same name as the new one, but margin 0.5
+    old = fake_repo / "results/runs/arcface_n2_seed1_ep2"
+    old.mkdir(parents=True)
+    (old / "result.json").write_text('{"old": true}')
+    before = snapshot(fake_repo / "results/runs")
+
+    train.main(["--loss", "arcface", "--margin", "0.3", *RUN, "--runs-dir", "results/tuning/ep2_m0.3"])
+
+    assert snapshot(fake_repo / "results/runs") == before
+    new = fake_repo / "results/tuning/ep2_m0.3/arcface_n2_seed1_ep2"
+    assert (new / "checkpoints/model.pt").exists()
+    # same keys as a normal run, so summarize.py can compare old and new runs
+    assert read_result(new)["options"] == {"loss": "arcface", "n": 2, "seed": 1, "epochs": 2,
+                                           "batch_size": 4, "lr": 3e-4, "lr_schedule": "cosine",
+                                           "margin": 0.3, "scale": 64.0}
 
 
 def test_unknown_loss_is_rejected():
