@@ -5,7 +5,8 @@ data/celeb_raw/<name>/<file>.jpg and write data/celeb_raw/meta.csv (image_path,i
 preprocess.py. Then only this folder has to be packed and uploaded.
 
 The names come from configs/celeb_gallery_pins.csv (Pins folder -> name) and
-configs/celeb_gallery_lfw.txt (one LFW folder name per line).
+configs/celeb_gallery_lfw.txt (one LFW folder name per line). The people in
+configs/celeb_gallery_exclude.txt are left out, because they were probably CelebA training people.
 
 Example: python -m whoisit.data.celeb_meta
 """
@@ -18,6 +19,7 @@ PINS_DIR = Path("data/pins/105_classes_pins_dataset")
 LFW_DIR = Path("data/sklearn/lfw_home/lfw_funneled")
 PINS_NAMES = Path("configs/celeb_gallery_pins.csv")
 LFW_NAMES = Path("configs/celeb_gallery_lfw.txt")
+EXCLUDE = Path("configs/celeb_gallery_exclude.txt")
 OUT_DIR = Path("data/celeb_raw")
 # the gallery keeps 5 photos per person; 10 leave room for photos where no face is found
 MAX_PHOTOS = 10
@@ -29,6 +31,7 @@ def parse_args(argv=None):
     parser.add_argument("--lfw-dir", type=Path, default=LFW_DIR)
     parser.add_argument("--pins-names", type=Path, default=PINS_NAMES)
     parser.add_argument("--lfw-names", type=Path, default=LFW_NAMES)
+    parser.add_argument("--exclude", type=Path, default=EXCLUDE, help="names to leave out, one per line")
     parser.add_argument("--out-dir", type=Path, default=OUT_DIR)
     parser.add_argument("--max-photos", type=int, default=MAX_PHOTOS, help="per person")
     return parser.parse_args(argv)
@@ -57,6 +60,20 @@ def load_lfw_names(path, lfw_dir):
     if missing:
         raise ValueError(f"LFW names in {path} that are not a folder in {lfw_dir}: {', '.join(missing)}")
     return names
+
+
+def load_exclude(path, names):
+    if not path.exists():
+        raise ValueError(f"{path} not found")
+    # one name per line; lines with # are comments
+    exclude = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()
+               if line.strip() and not line.strip().startswith("#")]
+    check_unique(exclude)
+    # a typo would keep a training person in the gallery without anyone noticing
+    unknown = [name for name in exclude if name not in names]
+    if unknown:
+        raise ValueError(f"names in {path} that are not in the gallery lists: {', '.join(unknown)}")
+    return set(exclude)
 
 
 def check_unique(names):
@@ -99,8 +116,10 @@ def main(argv=None):
         pins = load_pins_names(args.pins_names, args.pins_dir)
         lfw = load_lfw_names(args.lfw_names, args.lfw_dir)
         check_unique([*pins.values(), *lfw])
-        pins_people = [(args.pins_dir / folder, name) for folder, name in sorted(pins.items(), key=lambda x: x[1])]
-        lfw_people = [(args.lfw_dir / name, name) for name in sorted(lfw)]
+        exclude = load_exclude(args.exclude, {*pins.values(), *lfw})
+        pins_people = [(args.pins_dir / folder, name) for folder, name in sorted(pins.items(), key=lambda x: x[1])
+                       if name not in exclude]
+        lfw_people = [(args.lfw_dir / name, name) for name in sorted(lfw) if name not in exclude]
         args.out_dir.mkdir(parents=True, exist_ok=True)
         pins_rows = collect(pins_people, args.out_dir, args.max_photos)
         lfw_rows = collect(lfw_people, args.out_dir, args.max_photos)
@@ -112,6 +131,7 @@ def main(argv=None):
         writer.writerow(["image_path", "identity"])
         writer.writerows(sorted(pins_rows + lfw_rows))
 
+    print(f"excluded: {len(exclude)} people (from {args.exclude})")
     for source, people, rows in [("pins", pins_people, pins_rows), ("lfw", lfw_people, lfw_rows)]:
         print(f"{source}: {len(people)} people, {len(rows)} photos")
     print(f"total: {len(pins_people) + len(lfw_people)} people, {len(pins_rows) + len(lfw_rows)} photos")

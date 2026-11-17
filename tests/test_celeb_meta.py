@@ -27,13 +27,15 @@ def setup(tmp_path):
     (tmp_path / "pins.csv").write_text(
         "folder,name\npins_Henry Cavil,Henry_Cavill\npins_Zendaya,Zendaya\n", encoding="utf-8")
     (tmp_path / "lfw.txt").write_text("Tom_Hanks\n\nHalle_Berry\n", encoding="utf-8")
+    # no one excluded, only the comment line
+    (tmp_path / "exclude.txt").write_text("# CelebA training people\n", encoding="utf-8")
     return tmp_path
 
 
 def run_main(tmp_path):
     celeb_meta.main(["--pins-dir", str(tmp_path / "pins"), "--lfw-dir", str(tmp_path / "lfw"),
                      "--pins-names", str(tmp_path / "pins.csv"), "--lfw-names", str(tmp_path / "lfw.txt"),
-                     "--out-dir", str(tmp_path / "raw")])
+                     "--exclude", str(tmp_path / "exclude.txt"), "--out-dir", str(tmp_path / "raw")])
     with open(tmp_path / "raw" / "meta.csv", newline="", encoding="utf-8") as file:
         return list(csv.DictReader(file))
 
@@ -62,6 +64,46 @@ def test_copies_the_chosen_photos_and_writes_meta(setup, capsys):
     assert "pins: 2 people, 12 photos" in output
     assert "lfw: 2 people, 11 photos" in output
     assert "total: 4 people, 23 photos" in output
+
+
+def test_excluded_people_are_left_out(setup, capsys):
+    # one from Pins and one from LFW, with a comment and an empty line
+    (setup / "exclude.txt").write_text("# training people\nHenry_Cavill\n\nTom_Hanks\n", encoding="utf-8")
+    rows = run_main(setup)
+
+    assert sorted({row["identity"] for row in rows}) == ["Halle_Berry", "Zendaya"]
+    assert not (setup / "raw" / "Henry_Cavill").exists()
+    assert not (setup / "raw" / "Tom_Hanks").exists()
+    output = capsys.readouterr().out
+    assert "excluded: 2 people" in output
+    assert "pins: 1 people, 2 photos" in output
+    assert "lfw: 1 people, 1 photos" in output
+    assert "total: 2 people, 3 photos" in output
+
+
+def test_no_one_excluded(setup, capsys):
+    run_main(setup)
+    assert "excluded: 0 people" in capsys.readouterr().out
+
+
+def test_exclude_name_not_in_gallery_lists_gives_an_error(setup):
+    # the Pins folder name instead of the name, and a typo
+    (setup / "exclude.txt").write_text("Henry_Cavil\nZendaya\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="not in the gallery lists: Henry_Cavil$"):
+        run_main(setup)
+    assert not (setup / "raw").exists()
+
+
+def test_exclude_name_twice_gives_an_error(setup):
+    (setup / "exclude.txt").write_text("Zendaya\nZendaya\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="appear twice: Zendaya"):
+        run_main(setup)
+
+
+def test_missing_exclude_file_gives_an_error(setup):
+    (setup / "exclude.txt").unlink()
+    with pytest.raises(SystemExit, match="exclude.txt not found"):
+        run_main(setup)
 
 
 def test_pins_folder_missing_in_table_gives_an_error(setup):
@@ -122,3 +164,8 @@ def test_real_config_files_have_no_double_names():
     celeb_meta.check_unique(pins + lfw)
     assert {"Bill_Gates", "Keanu_Reeves", "Tom_Cruise"} <= set(pins)
     assert not {"Bill_Gates", "Keanu_Reeves", "Tom_Cruise"} & set(lfw)
+
+    # the 20 likely training people are all real gallery names, so 139 - 20 = 119 people stay
+    exclude = celeb_meta.load_exclude(repo / celeb_meta.EXCLUDE, set(pins + lfw))
+    assert len(exclude) == 20
+    assert len(set(pins + lfw) - exclude) == 119

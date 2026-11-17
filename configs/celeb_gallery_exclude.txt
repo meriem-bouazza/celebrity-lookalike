@@ -1,0 +1,21 @@
+# Likely CelebA training people (results/overlap_celeb_celeba.txt, centroid similarity >= 0.8), so not in the demo gallery.
+Penn_Badgley
+Wentworth_Miller
+Robert_Downey_Jr
+Logan_Lerman
+Josh_Radnor
+Natalie_Portman
+Chris_Pratt
+Jeremy_Renner
+Jason_Momoa
+Amber_Heard
+Dominic_Purcell
+Hugh_Jackman
+Zac_Efron
+Sarah_Wayne_Callies
+Natalie_Dormer
+Chris_Evans
+Tom_Hardy
+Mark_Ruffalo
+Taylor_Swift
+Miley_Cyrus
