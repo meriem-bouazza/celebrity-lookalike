@@ -373,3 +373,33 @@ Template:
   - Only one seed per setting, and the GPU gives about 1 point difference for the same seed. The chosen setting can win by chance.
   - Cross-entropy did not get the same tuning, so the second comparison favors ArcFace a bit. We say this in the paper.
 - Who: Meriem, Melina
+
+## 2026-11-17: Error analysis with the attributes
+
+- Decision: We describe the errors of our 24 fixed models with the 5 attributes from "Attributes for the error analysis". We do not change any model because of this.
+- Why: We want to know for which photos and people the models work worse.
+- Numbers (test people, Top 1 of photos with the attribute minus photos without it, mean of 3 seeds, cross-entropy; all numbers for both losses in `results/tables/error_analysis.csv` and per run in `results/tables/error_analysis_runs.csv`, made with `python -m whoisit.error_analysis`):
+
+  | attribute | N = 2 | N = 5 | N = 10 | N = 20 |
+  |---|---|---|---|---|
+  | Blurry | -7.5 | -14.3 | -20.6 | -23.6 |
+  | Wearing_Hat | +3.5 | -2.6 | -10.9 | -15.4 |
+  | Eyeglasses | +10.2 | +9.8 | +0.8 | -3.9 |
+  | Smiling | +4.0 | +8.9 | +12.7 | +13.4 |
+  | Male | +6.3 | +13.0 | +15.8 | +12.5 |
+
+  - The spread over the seeds is small (mostly 1 to 3 points). It goes over 0 only for Wearing_Hat with N = 2 (cross-entropy) and Eyeglasses with N = 10 (both losses).
+  - ArcFace shows the same pattern for every N. With N = 20 glasses (-8.8) and hats (-20.4) hurt ArcFace a bit more than cross-entropy (-3.9 and -15.4).
+  - The overall Top 1 of each run is the same as in its `test.json`.
+- What we see:
+  - Blurry photos are the hardest, for every N.
+  - Hats hurt more when the model is better (bigger N).
+  - With few photos, glasses even help. With N = 10 they make no clear difference, with N = 20 they hurt. A guess: a person often wears the same glasses on several photos, so a weak model may match the glasses, not the face.
+  - Smiling photos are easier. A guess: in CelebA these are often frontal, well lit photos.
+  - Photos of men are found 6 to 16 points more often than photos of women. A guess: women change their look more between celebrity photos (make-up, hair). We name this in the paper as a fairness limit.
+- Alternatives: Look at more attributes or combinations (for example hat and glasses). We keep it to 5 single attributes.
+- Risks:
+  - The attributes were set by people and are not always right.
+  - The groups differ in more than one thing (other people, other photo types), so an attribute is not always the real cause.
+  - We looked at the test people again, but only to describe fixed models, not to choose settings.
+- Who: Meriem
