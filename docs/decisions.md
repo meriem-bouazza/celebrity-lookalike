@@ -353,13 +353,15 @@ Template:
 - What we write: In the paper we say clearly that the hypothesis was not supported with the same settings for both losses, show the numbers with the spread over the seeds, and name the reasons above, split into shown and guessed. The second result (ArcFace with its own settings) comes as an extra section.
 - Risks: Only 3 seeds, and the GPU does not give exactly the same numbers for the same seed (about 1 point). Small differences can be chance.
 - Who: Meriem, Melina
+
 ## 2026-11-17: Rules for ArcFace with its own settings
 
 - Decision: We write these rules down before any new run, so we cannot change them after we see the numbers.
   - We try 3 new settings: 10 epochs with margin 0.5, 20 epochs with margin 0.3, 10 epochs with margin 0.3. Our old setting (20 epochs, margin 0.5) is the fourth. Scale stays 64, everything else stays the same.
   - A setting with 10 epochs is a new run with the cosine schedule over 10 epochs. We do not use epoch 10 of the old 20-epoch runs.
   - First only seed 42 with N = 2 and N = 20, only on the validation people. For the old setting we use our existing runs with seed 42.
-  - We pick the setting with the best mean validation Top 1 of N = 2 and N = 20, at the last epoch (like `summary.csv`). If two are equal, we take the shorter training.
+  - We pick the setting with the best mean validation Top 1 of N = 2 and N = 20, at the last epoch (like `summary.csv`).
+  - A setting counts as equal if its score is at most 1 point below the best score (about the GPU noise for the same seed). Among the equal settings we take the one with fewer epochs. If there is still more than one, we take margin 0.5.
   - Only the chosen setting runs for all N with 3 seeds, and only it goes once to the test people.
   - The first result (same settings for both losses) stays in the paper.
 - Why: In the first comparison ArcFace got the settings we had chosen with cross-entropy (see 2026-11-16). ArcFace was best around epoch 9 and then got worse, so fewer epochs or a smaller margin may suit it better. Choosing only on the validation people keeps the test people clean.
