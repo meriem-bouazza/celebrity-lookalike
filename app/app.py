@@ -8,7 +8,8 @@ The camera starts only after a click. The demo starts with the ready-made model;
 Usage (the gallery must exist, see README "Run"):
     python app/app.py
     python app/app.py --device cuda
-"Our model" is offered only when data/gallery/ours.npz exists.
+    python app/app.py --gallery-dir data/gallery/celeb --aligned-dir data/aligned/celeb   # celebrity gallery (#71)
+"Our model" is offered only when ours.npz exists in the gallery folder.
 Then open http://127.0.0.1:7860 in the browser.
 """
 
@@ -30,8 +31,8 @@ from whoisit.data.align import detect_and_align, load_image
 from whoisit import gallery as galleries
 from whoisit.gallery import top_people
 
-# The one setting that switches the model: name -> (load, embed, gallery built with the same model).
-MODELS = {name: (load, embed, galleries.gallery_path(name)) for name, (load, embed) in galleries.MODELS.items()}
+# The one setting that switches the model: name -> (load, embed); its gallery is <gallery_dir>/<name>.npz.
+MODELS = galleries.MODELS
 MODEL_LABELS = {"pretrained": "Ready-made model", "ours": "Our model (ArcFace)"}
 UPLOAD_DIR = Path(get_upload_folder())  # where Gradio stores visitor photos; only files here are deleted
 # The aligned face of the photo on screen. Its file is kept, because Gradio sends the same path again
@@ -49,12 +50,12 @@ def aligned_face(photo_path: str, device: str) -> np.ndarray | None:
     return last_face[photo_path]
 
 
-def make_match(model_name: str = "pretrained", device: str = "cpu",
+def make_match(model_name: str = "pretrained", device: str = "cpu", gallery_dir: Path = Path("data/gallery"),
                aligned_dir: Path = Path("data/aligned/lfw"), k: int = 3):
     """Load the model and gallery once and return the function the demo calls for every photo."""
-    load, embed, gallery_path = MODELS[model_name]
+    load, embed = MODELS[model_name]
     model = load(device)
-    gallery = np.load(gallery_path)
+    gallery = np.load(gallery_dir / f"{model_name}.npz")
 
     def match(photo_path: str | None) -> list[tuple[np.ndarray, str]]:
         if photo_path is None:
@@ -77,12 +78,22 @@ def example_photos(metadata: Path = Path("data/lfw_meta.csv"), k: int = 4) -> li
     return [row["image_path"] for row in rows if counts[row["identity"]] == 1 and Path(row["image_path"]).exists()][:k]
 
 
-def main() -> None:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Celebrity look-alike demo (local only).")
     parser.add_argument("--device", default="cpu", help="cpu or cuda")
-    args = parser.parse_args()
+    parser.add_argument("--gallery-dir", type=Path, default=Path("data/gallery"),
+                        help="folder with pretrained.npz and ours.npz (default: LFW gallery)")
+    parser.add_argument("--aligned-dir", type=Path, default=Path("data/aligned/lfw"),
+                        help="aligned photos the gallery was built from")
+    return parser.parse_args(argv)
 
-    matchers = {name: make_match(name, args.device) for name in MODEL_LABELS if MODELS[name][2].exists()}
+
+def main() -> None:
+    args = parse_args()
+    matchers = {name: make_match(name, args.device, args.gallery_dir, args.aligned_dir)
+                for name in MODEL_LABELS if (args.gallery_dir / f"{name}.npz").exists()}
+    if "pretrained" not in matchers:  # without it the model choice is empty and every search fails
+        raise SystemExit(f"No gallery found: {args.gallery_dir / 'pretrained.npz'} is missing. Build it first (README \"Run\").")
     demo = gr.Interface(
         lambda photo, model_name: matchers[model_name](photo),
         [gr.Image(sources=["upload", "webcam"], type="filepath", label="Your Photo"),

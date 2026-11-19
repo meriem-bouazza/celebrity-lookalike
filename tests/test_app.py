@@ -23,11 +23,10 @@ def match(tmp_path, monkeypatch):
         (tmp_path / path).parent.mkdir(exist_ok=True)
         cv2.imwrite(str(tmp_path / path), rng.integers(0, 256, (112, 112, 3), dtype=np.uint8))
     embeddings = rng.normal(size=(4, 512))
-    np.savez(tmp_path / "gallery.npz", embeddings=embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True),
+    np.savez(tmp_path / "pretrained.npz", embeddings=embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True),
              identities=np.array(["Ann_A", "Ann_A", "Bob_B", "Cy_C"]), image_paths=np.array(paths))
-    monkeypatch.setitem(app.MODELS, "pretrained",
-                        (lambda device: load_pretrained(device, None), embed_pretrained, tmp_path / "gallery.npz"))
-    return app.make_match(aligned_dir=tmp_path)
+    monkeypatch.setitem(app.MODELS, "pretrained", (lambda device: load_pretrained(device, None), embed_pretrained))
+    return app.make_match(gallery_dir=tmp_path, aligned_dir=tmp_path)
 
 
 def test_match_returns_three_different_people(match, lfw_people):
@@ -36,6 +35,19 @@ def test_match_returns_three_different_people(match, lfw_people):
     assert len(result) == 3
     assert {c.split(" (")[0] for c in captions} == {"Ann A", "Bob B", "Cy C"}
     assert all(image.shape == (112, 112, 3) for image, _ in result)
+
+
+def test_gallery_and_aligned_dir_default_to_lfw():
+    args = app.parse_args([])
+    assert (args.gallery_dir, args.aligned_dir) == (Path("data/gallery"), Path("data/aligned/lfw"))
+    args = app.parse_args(["--gallery-dir", "data/gallery/celeb", "--aligned-dir", "data/aligned/celeb"])
+    assert (args.gallery_dir, args.aligned_dir) == (Path("data/gallery/celeb"), Path("data/aligned/celeb"))
+
+
+def test_main_stops_when_gallery_folder_has_no_gallery(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["app.py", "--gallery-dir", str(tmp_path / "celeb")])
+    with pytest.raises(SystemExit, match="pretrained.npz"):
+        app.main()
 
 
 def test_match_explains_missing_face(match, tmp_path):

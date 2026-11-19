@@ -97,7 +97,11 @@ python -m whoisit.gallery --aligned-dir data/aligned/celeb --out data/gallery/ce
 python -m whoisit.gallery --model ours --aligned-dir data/aligned/celeb --out data/gallery/celeb/ours.npz --device cuda
 ```
 
-For now the app still uses the LFW gallery. It can use the new one when it gets options for the gallery folder (#76).
+4. Start the demo with the new gallery (without the options it uses the LFW gallery):
+
+```
+python app/app.py --gallery-dir data/gallery/celeb --aligned-dir data/aligned/celeb
+```
 
 Add `--device cuda` to use the GPU. The split by person is made with `python -m whoisit.data.splits`.
 
