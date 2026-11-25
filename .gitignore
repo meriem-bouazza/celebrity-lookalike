@@ -7,22 +7,22 @@ venv/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# Datensaetze: niemals ins Repo (Lizenzen), nur data/README.md
+# Datasets: never in the repo (licenses), only data/README.md
 data/*
 !data/README.md
 
-# Trainingsausgaben: Logs/Configs ja, Gewichte nein (Release statt Git)
+# Training output: logs and configs yes, weights no (we do not share them, see docs/decisions.md)
 *.pt
 *.pth
 *.ckpt
 *.npz
 results/runs/**/checkpoints/
 
-# Gradio-Temp und Flagging
+# Gradio temp files and flagging
 .gradio/
 flagged/
 
-# Paper-Build
+# Paper build
 paper/**/*.aux
 paper/**/*.log
 paper/**/*.out
