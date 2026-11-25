@@ -427,3 +427,26 @@ Template:
   - The LFW photos are about 20 years old.
   - The app still uses the LFW gallery until it gets options for the gallery folder (Melina, #76).
 - Who: Meriem
+
+## 2026-11-25: Chosen ArcFace setting
+
+- Decision: Following the rules from "Rules for ArcFace with its own settings", ArcFace gets 10 epochs with margin 0.5. Only this setting now runs for all N with seeds 42, 43 and 44.
+- Why (validation people, seed 42, last epoch, score = mean of N = 2 and N = 20):
+
+  | setting | N = 2 | N = 20 | score |
+  |---|---|---|---|
+  | 20 epochs, margin 0.3 | 19.31 % | 71.23 % | 45.27 (best) |
+  | 10 epochs, margin 0.5 | 17.58 % | 72.13 % | 44.86 |
+  | 20 epochs, margin 0.5 (old) | 18.46 % | 70.53 % | 44.50 |
+  | 10 epochs, margin 0.3 | 16.82 % | 72.01 % | 44.42 |
+
+  - All four settings are at most 1 point below the best score, so they count as equal. Among them we take fewer epochs (10), and then margin 0.5.
+- Numbers:
+  - The runs are in `results/tuning/m0.5_ep10/`, `results/tuning/m0.3_ep20/` and `results/tuning/m0.3_ep10/`. The old setting uses the seed 42 runs in `results/runs/`.
+  - All four settings are within 0.85 points, which is smaller than the GPU noise of about 1 point. So margin and number of epochs make little difference for ArcFace here.
+  - Shorter training helps ArcFace with N = 20 (72.1 % instead of 70.5 %) but hurts with N = 2 (17.6 % instead of 18.5 %). This fits the validation curves: ArcFace is best early with N = 20, but not with N = 2.
+- Alternatives: Take the best score (20 epochs, margin 0.3). We do not, because we fixed the rule before the runs.
+- Risks:
+  - One seed per setting. The choice between settings this close is mostly chance.
+  - The first tuning runs were very slow because PyTorch started 96 CPU threads on a busy server. With `OMP_NUM_THREADS=8` one epoch takes the usual 4 s again. This does not change the results.
+- Who: Meriem
