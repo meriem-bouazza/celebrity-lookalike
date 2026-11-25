@@ -65,7 +65,7 @@ Template:
 
 - Decision: We write code on the laptop and push from there. The container only runs the code. The datasets are uploaded by hand and never go into Git.
 - Why: The container has no Git login and runs out after some time. Changes made there cannot be pushed.
-- Numbers: The GPU is an NVIDIA RTX 4070 Ti SUPER with 16 GB, shared by both of us. The container shows 96 CPU cores and 54 GB RAM, with no limit set. 
+- Numbers: The GPU is an NVIDIA RTX 4070 Ti SUPER with 16 GB, shared by both of us. The container shows 96 CPU cores and 54 GB RAM, with no limit set.
 - Alternatives: Colab or Kaggle
 - Risks:
   - The container runs out. Copy results to a laptop before that.
@@ -434,14 +434,14 @@ Template:
 - Why: The picture shows in one look what training does: photos of the same person end up close together. The number makes sure we do not only rely on the picture, because t-SNE distances have no exact meaning.
 - Numbers (`python -m whoisit.plot_embeddings`, `results/figures/embeddings_tsne.png`):
   - Silhouette score with cosine distance on the full 512 numbers per photo: ImageNet -0.04, cross-entropy 0.27, ArcFace 0.24.
-  - Without training the people are mixed up. Both trained models form clear groups per person. Cross-entropy separates them a bit better, which fits the test numbers.
+  - Without training the people are mixed up. Both trained models form clear groups per person. Cross-entropy has a slightly higher score here, but this is only 20 people. On all test people the two runs are about equal (Top 1 63.7 % and 64.4 %), so this small difference is not a result.
   - The 20 people are picked at random with seed 42, t-SNE also uses seed 42. We made the picture once and did not try other seeds to get a nicer picture.
 - Alternatives: UMAP (needs a new package, which can break our fixed versions). More people (the picture gets too full to read).
 - Risks:
   - 20 people are only a small part of the 1000 test people.
   - A t-SNE picture changes with the seed and the settings. Only the silhouette score is a real measure.
   - Only dots, no photos, because of the CelebA license.
-  - Who: Meriem
+- Who: Meriem
 
 ## 2026-11-25: Chosen ArcFace setting
 
