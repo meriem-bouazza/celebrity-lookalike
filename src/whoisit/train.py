@@ -39,7 +39,7 @@ def parse_args(argv=None):
     parser.add_argument("--force", action="store_true", help="run again if the result already exists")
     parser.add_argument("--margin", type=float, default=ARCFACE_MARGIN, help="only for arcface")
     parser.add_argument("--scale", type=float, default=ARCFACE_SCALE, help="only for arcface")
-    # the folder name has no margin, so other settings need their own folder (e.g. results/tuning/ep10_m0.3)
+    # the folder name has no margin, so other settings need their own folder (e.g. results/tuning/m0.3_ep10)
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
     return parser.parse_args(argv)
 
